@@ -3,8 +3,38 @@ import { browser, dev } from '$app/environment';
 
 export const APP_NAME = 'Open WebUI';
 
-export const WEBUI_HOSTNAME = browser ? (dev ? `${location.hostname}:8080` : ``) : '';
-export const WEBUI_BASE_URL = browser ? (dev ? `http://${WEBUI_HOSTNAME}` : ``) : ``;
+const getDevBaseUrl = () => {
+	if (!(browser && dev)) {
+		return '';
+	}
+
+	const fallback = `http://${location.hostname}:8080`;
+	const configured = import.meta.env.VITE_WEBUI_DEV_BASE_URL?.trim();
+	const candidate = configured
+		? /^https?:\/\//i.test(configured)
+			? configured
+			: `http://${configured}`
+		: fallback;
+
+	return candidate.replace(/\/+$/, '');
+};
+
+const WEBUI_DEV_BASE_URL = getDevBaseUrl();
+
+const getDevHostname = () => {
+	if (!(browser && dev)) {
+		return '';
+	}
+
+	try {
+		return new URL(WEBUI_DEV_BASE_URL).host;
+	} catch {
+		return `${location.hostname}:8080`;
+	}
+};
+
+export const WEBUI_HOSTNAME = browser ? (dev ? getDevHostname() : ``) : '';
+export const WEBUI_BASE_URL = browser ? (dev ? WEBUI_DEV_BASE_URL : ``) : ``;
 export const WEBUI_API_BASE_URL = `${WEBUI_BASE_URL}/api/v1`;
 
 export const OLLAMA_API_BASE_URL = `${WEBUI_BASE_URL}/ollama`;

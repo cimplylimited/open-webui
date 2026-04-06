@@ -2,7 +2,7 @@
 
 Date: 2026-04-05 (America/New_York)
 Scope: Attempted removal of unlicensed/GPL-risk dependency chain (`extract_msg` path)
-Status: Migration changes were reverted; data access was recovered
+Status: Initial attempt reverted; follow-up maintenance window succeeded
 
 ## Executive Summary
 
@@ -10,6 +10,29 @@ The first migration attempt to remove `extract_msg` and disable `.msg` ingestion
 The rollback of code changes succeeded, but subsequent operational steps exposed a separate data-path issue: multiple Docker volumes and DB files existed, and the running service was pointed at a different database than expected. This caused account/login mismatch and missing chat history symptoms.
 
 No confirmed permanent data loss occurred. Data was recovered by restoring the newest known database source after creating full backups.
+
+## Follow-Up Outcome (2026-04-05 / 2026-04-06 Window)
+
+The remediation window completed successfully with compliance changes re-applied and deployed.
+
+Accomplished:
+
+- Re-applied compliance change to remove `extract_msg` and disable `.msg` ingestion path in runtime.
+- Rebuilt and redeployed `open-webui` container.
+- Verified service health (`healthy`) and HTTP endpoint (`200`).
+- Verified expected account and history remained intact (`cimplyanonymous@hotmail.com`, 138 chats).
+- Verified removed dependency chain no longer exists in runtime:
+  - `extract_msg`
+  - `RTFDE`
+  - `pcodedmp`
+  - `oletools`
+- Preserved canonical DB baseline and created fresh pre-window backup with checksum.
+- Generated and committed compliance artifacts under `compliance/`.
+
+Remaining known item:
+
+- Schema-lineage mismatch warning remains (`d31026856c01` not found in current runtime migration set).
+- This was treated as conditional non-blocking for this dependency-only window and documented in `compliance/SCHEMA-LINEAGE-NOTE.md`.
 
 ## Intended Change
 
@@ -171,7 +194,9 @@ Use this checklist in change review before re-attempting compliance migration.
 
 ## Current State
 
-- Compliance removal of `extract_msg` is not currently active (reverted).
-- Expected user data has been restored and is accessible.
-- Migration-lineage warning exists and should be resolved before future major upgrades.
-- Future forward and rollback windows must use the fixed canonical DB snapshot as the baseline.
+- Compliance removal of `extract_msg` is active in the running deployment.
+- GPL chain related to `.msg` ingestion is removed from runtime.
+- Expected user data is accessible and verified.
+- Compliance artifacts are committed (license snapshots, waiver, lineage note).
+- Migration-lineage warning still exists and should be resolved before future schema-affecting upgrades.
+- Future forward and rollback windows must use the fixed canonical DB snapshot as the baseline, plus fresh pre-window backup.

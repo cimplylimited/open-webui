@@ -18,6 +18,16 @@ If you're experiencing connection issues, it’s often due to the WebUI docker c
 docker run -d --network=host -v open-webui:/app/backend/data -e OLLAMA_BASE_URL=http://127.0.0.1:11434 --name open-webui --restart always ghcr.io/open-webui/open-webui:main
 ```
 
+### Accessing a Remote Open WebUI Host
+
+If Open WebUI is running on a remote machine on your LAN, tunnel it to your local workstation:
+
+```bash
+ssh -L 9090:localhost:3000 cimply@10.70.0.1
+```
+
+Then use `http://localhost:9090` in your local browser.
+
 ### Error on Slow Responses for Ollama
 
 Open WebUI has a default timeout of 5 minutes for Ollama to finish generating the response. If needed, this can be adjusted via the environment variable AIOHTTP_CLIENT_TIMEOUT, which sets the timeout in seconds.
@@ -34,3 +44,11 @@ Open WebUI has a default timeout of 5 minutes for Ollama to finish generating th
    - Confirm that the Ollama Server URL is correctly set to `[OLLAMA URL]` (e.g., `http://localhost:11434`).
 
 By following these enhanced troubleshooting steps, connection issues should be effectively resolved. For further assistance or queries, feel free to reach out to us on our community Discord.
+
+## Database Recovery and Rollback
+
+If your account or chat history disappears after a deployment, use the dedicated runbook:
+
+- `docs/database-restore-and-rollback-runbook.md`
+
+The runbook covers backup-first restore, selecting the newest DB source, instant rollback, and migration mismatch conversion strategy.

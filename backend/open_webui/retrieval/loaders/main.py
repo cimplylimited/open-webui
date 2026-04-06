@@ -7,6 +7,7 @@ from langchain_community.document_loaders import (
     BSHTMLLoader,
     CSVLoader,
     Docx2txtLoader,
+    OutlookMessageLoader,
     PyPDFLoader,
     TextLoader,
     UnstructuredEPubLoader,
@@ -67,6 +68,7 @@ known_source_ext = [
     "swift",
     "vue",
     "svelte",
+    "msg",
     "ex",
     "exs",
     "erl",
@@ -179,9 +181,7 @@ class Loader:
             ] or file_ext in ["ppt", "pptx"]:
                 loader = UnstructuredPowerPointLoader(file_path)
             elif file_ext == "msg":
-                raise ValueError(
-                    ".msg file format is not supported. Please convert to .pdf, .txt, or .docx."
-                )
+                loader = OutlookMessageLoader(file_path)
             elif file_ext in known_source_ext or (
                 file_content_type and file_content_type.find("text/") >= 0
             ):

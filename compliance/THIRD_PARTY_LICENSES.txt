@@ -1,0 +1,46 @@
+THIRD PARTY LICENSES - COMPLIANCE SNAPSHOT
+Date: 2026-04-05
+Project: Open WebUI (local fork)
+Branch: compliance/remove-extract-msg
+
+Summary
+- Compliance window completed successfully.
+- GPL-chain dependency path removed from running container.
+- Canonical database preserved.
+- Schema-lineage mismatch documented as known non-blocking item for this window.
+
+Removed from runtime (compliance objective)
+- extract_msg (GPL) -> removed
+- RTFDE (LGPLv3) -> removed with extract_msg
+- pcodedmp (GPLv3) -> removed with extract_msg
+- oletools (BSD) -> removed with extract_msg chain
+
+Verification evidence
+- Backend licenses CSV: compliance/backend-licenses-20260405.csv
+- Frontend licenses CSV: compliance/frontend-licenses-20260405.csv
+- GPL/AGPL exact scan: compliance/gpl-agpl-scan-20260405.txt (gpl_agpl_match_count=0)
+- Caniuse build check: compliance/caniuse-lite-build-check-20260405.txt
+
+Accepted/Documented licenses and notes
+- LGPL family packages remain (internal use risk: low; redistribution obligations should be reviewed before external distribution):
+  - fpdf2 (LGPLv3)
+  - ldap3 (LGPLv3)
+  - psycopg2-binary (LGPL)
+  - pyxlsb (LGPLv3+)
+  - chardet (LGPLv2+)
+- MPL packages remain (file-level copyleft; low operational risk for internal deployment):
+  - bidict
+  - certifi
+  - pathspec
+- EPL package in frontend:
+  - elkjs (via Mermaid usage path; documented)
+- Unknown license package:
+  - git-python==1.0.3 (handled via formal waiver document)
+
+License elections
+- dompurify: Apache-2.0 elected
+- json-schema: BSD-3-Clause elected
+
+Notes
+- This file is a technical compliance record, not legal advice.
+- Counsel review is recommended before client-facing redistribution.

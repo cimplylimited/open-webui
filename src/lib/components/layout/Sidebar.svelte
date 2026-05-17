@@ -76,13 +76,35 @@
 
 	let folders = {};
 
+	const getErrorMessage = (error: unknown, fallback = 'Failed to load data.') => {
+		if (typeof error === 'string' && error.trim().length > 0) {
+			return error;
+		}
+
+		if (typeof error === 'object' && error !== null) {
+			if ('detail' in error && typeof error.detail === 'string' && error.detail.trim().length > 0) {
+				return error.detail;
+			}
+
+			if ('message' in error && typeof error.message === 'string' && error.message.trim().length > 0) {
+				return error.message;
+			}
+		}
+
+		return fallback;
+	};
+
 	const initFolders = async () => {
 		const folderList = await getFolders(localStorage.token).catch((error) => {
-			toast.error(error);
+			toast.error(getErrorMessage(error, 'Failed to load folders.'));
 			return [];
 		});
 
 		folders = {};
+
+		if (!Array.isArray(folderList)) {
+			return;
+		}
 
 		// First pass: Initialize all folder entries
 		for (const folder of folderList) {
@@ -105,7 +127,7 @@
 
 				// Sort the children by updated_at field
 				folders[folder.parent_id].childrenIds.sort((a, b) => {
-					return folders[b].updated_at - folders[a].updated_at;
+					return Number(folders[b]?.updated_at ?? 0) - Number(folders[a]?.updated_at ?? 0);
 				});
 			}
 		}
@@ -157,18 +179,44 @@
 	};
 
 	const initChatList = async () => {
-		// Reset pagination variables
-		tags.set(await getAllTags(localStorage.token));
-		pinnedChats.set(await getPinnedChatList(localStorage.token));
-		initFolders();
-
 		currentChatPage.set(1);
 		allChatsLoaded = false;
 
-		if (search) {
-			await chats.set(await getChatListBySearchText(localStorage.token, search, $currentChatPage));
+		const [tagsResult, pinnedResult, foldersResult] = await Promise.allSettled([
+			getAllTags(localStorage.token),
+			getPinnedChatList(localStorage.token),
+			initFolders()
+		]);
+
+		tags.set(tagsResult.status === 'fulfilled' ? tagsResult.value : []);
+		if (pinnedResult.status === 'fulfilled') {
+			pinnedChats.set(pinnedResult.value);
 		} else {
-			await chats.set(await getChatList(localStorage.token, $currentChatPage));
+			pinnedChats.set([]);
+		}
+
+		if (tagsResult.status === 'rejected') {
+			toast.error(getErrorMessage(tagsResult.reason, 'Failed to load tags.'));
+		}
+
+		if (pinnedResult.status === 'rejected') {
+			toast.error(getErrorMessage(pinnedResult.reason, 'Failed to load pinned chats.'));
+		}
+
+		if (foldersResult.status === 'rejected') {
+			toast.error(getErrorMessage(foldersResult.reason, 'Failed to load folders.'));
+		}
+
+		try {
+			if (search) {
+				await chats.set(await getChatListBySearchText(localStorage.token, search, 1));
+			} else {
+				await chats.set(await getChatList(localStorage.token, 1));
+			}
+		} catch (error) {
+			toast.error(getErrorMessage(error, 'Failed to load chats.'));
+			await chats.set([]);
+			allChatsLoaded = true;
 		}
 
 		// Enable pagination
@@ -182,10 +230,15 @@
 
 		let newChatList = [];
 
-		if (search) {
-			newChatList = await getChatListBySearchText(localStorage.token, search, $currentChatPage);
-		} else {
-			newChatList = await getChatList(localStorage.token, $currentChatPage);
+		try {
+			if (search) {
+				newChatList = await getChatListBySearchText(localStorage.token, search, $currentChatPage);
+			} else {
+				newChatList = await getChatList(localStorage.token, $currentChatPage);
+			}
+		} catch (error) {
+			toast.error(getErrorMessage(error, 'Failed to load more chats.'));
+			newChatList = [];
 		}
 
 		// once the bottom of the list has been reached (no results) there is no need to continue querying
@@ -212,10 +265,23 @@
 			searchDebounceTimeout = setTimeout(async () => {
 				allChatsLoaded = false;
 				currentChatPage.set(1);
-				await chats.set(await getChatListBySearchText(localStorage.token, search));
+
+				try {
+					await chats.set(await getChatListBySearchText(localStorage.token, search));
+				} catch (error) {
+					toast.error(getErrorMessage(error, 'Failed to search chats.'));
+					await chats.set([]);
+					allChatsLoaded = true;
+					return;
+				}
 
 				if ($chats.length === 0) {
-					tags.set(await getAllTags(localStorage.token));
+					try {
+						tags.set(await getAllTags(localStorage.token));
+					} catch (error) {
+						toast.error(getErrorMessage(error, 'Failed to load tags.'));
+						tags.set([]);
+					}
 				}
 			}, 1000);
 		}

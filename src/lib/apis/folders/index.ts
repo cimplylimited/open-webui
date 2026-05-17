@@ -38,7 +38,7 @@ export const getFolders = async (token: string = '') => {
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
+			...(token && { authorization: `Bearer ${token}` })
 		}
 	})
 		.then(async (res) => {
@@ -49,16 +49,16 @@ export const getFolders = async (token: string = '') => {
 			return json;
 		})
 		.catch((err) => {
-			error = err.detail;
+			error = err?.detail ?? err?.message ?? 'Failed to load folders';
 			console.log(err);
-			return null;
+			return [];
 		});
 
 	if (error) {
 		throw error;
 	}
 
-	return res;
+	return Array.isArray(res) ? res : [];
 };
 
 export const getFolderById = async (token: string, id: string) => {

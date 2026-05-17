@@ -1,6 +1,7 @@
 import time
 import logging
 import sys
+import re
 
 import asyncio
 from aiocache import cached
@@ -10,6 +11,7 @@ import json
 import inspect
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 
 from fastapi import Request
@@ -73,6 +75,53 @@ from open_webui.constants import TASKS
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MAIN"])
+
+
+_EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F300-\U0001F5FF"
+    "\U0001F600-\U0001F64F"
+    "\U0001F680-\U0001F6FF"
+    "\U0001F700-\U0001F77F"
+    "\U0001F780-\U0001F7FF"
+    "\U0001F800-\U0001F8FF"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FAFF"
+    "\U00002700-\U000027BF"
+    "\U00002600-\U000026FF"
+    "\U000024C2-\U0001F251"
+    "]+",
+    flags=re.UNICODE,
+)
+
+
+def _abbreviate_model(model_id: str, models: dict[str, Any]) -> str:
+    if not model_id:
+        return "model"
+
+    model_label = model_id
+    if model_id in models:
+        model_label = models[model_id].get("name") or model_id
+
+    model_label = model_label.split("/")[-1].split(":")[0]
+    model_label = re.sub(r"[^A-Za-z0-9]+", "", model_label).lower()
+    return model_label[:8] if model_label else "model"
+
+
+def _normalize_title_text(raw_title: str) -> str:
+    title = _EMOJI_PATTERN.sub("", raw_title or "")
+    title = title.replace("\n", " ").replace("\r", " ")
+    title = re.sub(r"\s+", " ", title).strip()
+    title = title.strip("'\"")
+    title = re.sub(r"^[\-\_\:\|\s]+", "", title)
+    return title if title else "untitled"
+
+
+def _format_generated_chat_title(raw_title: str, model_id: str, models: dict[str, Any]) -> str:
+    date_prefix = datetime.now().strftime("%Y-%m-%d")
+    model_abbrev = _abbreviate_model(model_id, models)
+    normalized_title = _normalize_title_text(raw_title)
+    return f"[{date_prefix}]_{model_abbrev}_{normalized_title}"
 
 
 async def chat_completion_filter_functions_handler(request, body, model, extra_params):
@@ -770,7 +819,7 @@ async def process_chat_response(
                         )
 
                         if res and isinstance(res, dict):
-                            title = (
+                            raw_title = (
                                 res.get("choices", [])[0]
                                 .get("message", {})
                                 .get(
@@ -779,8 +828,14 @@ async def process_chat_response(
                                 )
                             ).strip()
 
-                            if not title:
-                                title = messages[0].get("content", "New Chat")
+                            if not raw_title:
+                                raw_title = messages[0].get("content", "New Chat")
+
+                            title = _format_generated_chat_title(
+                                raw_title,
+                                message.get("model", ""),
+                                request.app.state.MODELS,
+                            )
 
                             Chats.update_chat_title_by_id(metadata["chat_id"], title)
 
@@ -791,14 +846,19 @@ async def process_chat_response(
                                 }
                             )
                     elif len(messages) == 2:
-                        title = messages[0].get("content", "New Chat")
+                        raw_title = messages[0].get("content", "New Chat")
+                        title = _format_generated_chat_title(
+                            raw_title,
+                            message.get("model", ""),
+                            request.app.state.MODELS,
+                        )
 
                         Chats.update_chat_title_by_id(metadata["chat_id"], title)
 
                         await event_emitter(
                             {
                                 "type": "chat:title",
-                                "data": message.get("content", "New Chat"),
+                                "data": title,
                             }
                         )
 

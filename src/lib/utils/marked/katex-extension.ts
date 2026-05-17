@@ -134,6 +134,18 @@ function inlineKatex(options) {
 		},
 		tokenizer(src, tokens) {
 			return katexTokenizer(src, tokens, false);
+		},
+		renderer(token) {
+			try {
+				return katex.renderToString(token.text ?? '', {
+					...options,
+					displayMode: false,
+					throwOnError: false
+				});
+			} catch (error) {
+				console.warn('Failed to render inline Katex token', error);
+				return token.raw ?? token.text ?? '';
+			}
 		}
 	};
 }
@@ -147,6 +159,18 @@ function blockKatex(options) {
 		},
 		tokenizer(src, tokens) {
 			return katexTokenizer(src, tokens, true);
+		},
+		renderer(token) {
+			try {
+				return katex.renderToString(token.text ?? '', {
+					...options,
+					displayMode: true,
+					throwOnError: false
+				});
+			} catch (error) {
+				console.warn('Failed to render block Katex token', error);
+				return `<p>${token.raw ?? token.text ?? ''}</p>`;
+			}
 		}
 	};
 }

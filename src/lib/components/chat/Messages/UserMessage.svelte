@@ -36,13 +36,31 @@
 	let editedContent = '';
 	let messageEditTextAreaElement: HTMLTextAreaElement;
 
-	let message = JSON.parse(JSON.stringify(history.messages[messageId]));
-	$: if (history.messages) {
-		if (JSON.stringify(message) !== JSON.stringify(history.messages[messageId])) {
-			message = JSON.parse(JSON.stringify(history.messages[messageId]));
-		}
+	let message = history?.messages?.[messageId];
+	$: message = history?.messages?.[messageId];
+
+	const LONG_USER_MESSAGE_RENDER_THRESHOLD = 30000;
+	const LONG_USER_MESSAGE_PREVIEW_SUFFIX =
+		'\n\n---\n[Long message preview loaded for performance. Click below to render full content.]';
+
+	let previousUserMessageId = null;
+	let showFullUserMessage = false;
+	let isLongUserMessage = false;
+	let userMessageContent = '';
+
+	$: if (message?.id !== previousUserMessageId) {
+		previousUserMessageId = message?.id;
+		showFullUserMessage = false;
 	}
 
+	$: isLongUserMessage =
+		typeof message?.content === 'string' &&
+		message.content.length > LONG_USER_MESSAGE_RENDER_THRESHOLD;
+
+	$: userMessageContent =
+		isLongUserMessage && !showFullUserMessage
+			? `${message.content.slice(0, LONG_USER_MESSAGE_RENDER_THRESHOLD)}${LONG_USER_MESSAGE_PREVIEW_SUFFIX}`
+			: message?.content;
 	const copyToClipboard = async (text) => {
 		const res = await _copyToClipboard(text);
 		if (res) {
@@ -215,7 +233,33 @@
 								: ' w-full'}"
 						>
 							{#if message.content}
-								<Markdown id={message.id} content={message.content} />
+								{#if isLongUserMessage && !showFullUserMessage}
+									<div class="mb-2 text-xs text-amber-600 dark:text-amber-400">
+										<button
+											class="underline underline-offset-2"
+											on:click={() => {
+												showFullUserMessage = true;
+											}}
+										>
+											{$i18n.t('Load full message content')}
+										</button>
+									</div>
+								{/if}
+
+								<Markdown id={message.id} content={userMessageContent} />
+
+								{#if isLongUserMessage && showFullUserMessage}
+									<div class="mt-2 text-xs text-amber-600 dark:text-amber-400">
+										<button
+											class="underline underline-offset-2"
+											on:click={() => {
+												showFullUserMessage = false;
+											}}
+										>
+											{$i18n.t('Collapse to preview')}
+										</button>
+									</div>
+								{/if}
 							{/if}
 						</div>
 					</div>

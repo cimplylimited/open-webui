@@ -47,12 +47,8 @@
 	let groupedMessageIds = {};
 	let groupedMessageIdsIdx = {};
 
-	let message = JSON.parse(JSON.stringify(history.messages[messageId]));
-	$: if (history.messages) {
-		if (JSON.stringify(message) !== JSON.stringify(history.messages[messageId])) {
-			message = JSON.parse(JSON.stringify(history.messages[messageId]));
-		}
-	}
+	let message = history?.messages?.[messageId];
+	$: message = history?.messages?.[messageId];
 
 	const showPreviousMessage = async (modelIdx) => {
 		groupedMessageIdsIdx[modelIdx] = Math.max(0, groupedMessageIdsIdx[modelIdx] - 1);

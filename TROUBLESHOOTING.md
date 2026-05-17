@@ -45,6 +45,43 @@ Open WebUI has a default timeout of 5 minutes for Ollama to finish generating th
 
 By following these enhanced troubleshooting steps, connection issues should be effectively resolved. For further assistance or queries, feel free to reach out to us on our community Discord.
 
+## Long Chat Load Freeze or Stuck Input
+
+If long chats open slowly or appear frozen, and you see parser errors in the browser console (for example `Token with "inlineKatex" type was not found`), check both runtime health and frontend state before assuming message loss.
+
+### Typical Symptoms
+
+- Opening an older/long chat causes delayed render or apparent freeze.
+- Cleared input text reappears from local storage draft cache.
+- Submitting a short message (for example `hold on`) appears to do nothing.
+- Browser console shows markdown/Katex parser errors or unhandled promise rejections.
+
+### Fast Recovery Sequence
+
+```bash
+cd /home/cimply/git/open-webui
+docker compose -f docker-compose.yaml up -d --build --force-recreate open-webui
+docker compose -f docker-compose.yaml ps
+docker compose -f docker-compose.yaml logs --tail=120 open-webui
+curl -sS -m 10 http://localhost:3000/health
+```
+
+Then hard-refresh the browser (`Ctrl+Shift+R`) and re-open the affected chat.
+
+### Console Signals To Capture
+
+Capture browser console lines before refresh/restart if possible:
+
+- `Token with "inlineKatex" type was not found`
+- `Unhandled Promise Rejection` in markdown parsing/rendering path
+- `Duplicate extension names found: ['codeBlock']`
+- `401 Unauthorized` on auth endpoints (can indicate stale session/token)
+
+### Notes
+
+- A 401 on auth routes can prevent reliable reproduction in automation if token/session is stale.
+- Recovered visibility of prior messages after patch/restart usually indicates frontend render-path recovery, not backend message creation at restart time.
+
 ## Database Recovery and Rollback
 
 If your account or chat history disappears after a deployment, use the dedicated runbook:

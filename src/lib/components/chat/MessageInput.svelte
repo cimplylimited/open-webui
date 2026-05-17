@@ -397,15 +397,15 @@
 											</span>
 										</div>
 										<div class=" translate-y-[0.5px] text-ellipsis line-clamp-1 flex">
-											{#each selectedToolIds.map((id) => {
-												return $tools ? $tools.find((t) => t.id === id) : { id: id, name: id };
-											}) as tool, toolIdx (toolIdx)}
+												{#each selectedToolIds.map((id) => {
+													return $tools?.find((t) => t.id === id) ?? { id: id, name: id };
+												}) as tool, toolIdx (toolIdx)}
 												<Tooltip
 													content={tool?.meta?.description ?? ''}
 													className=" {toolIdx !== 0 ? 'pl-0.5' : ''} flex-shrink-0"
 													placement="top"
 												>
-													{tool.name}
+													{tool?.name ?? tool?.id}
 												</Tooltip>
 
 												{#if toolIdx !== selectedToolIds.length - 1}

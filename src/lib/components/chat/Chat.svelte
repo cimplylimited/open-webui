@@ -129,14 +129,219 @@
 	let files = [];
 	let params = {};
 
+	const DRAFT_CACHE_PREFIX = 'chat-input-';
+	const DRAFT_MAX_PROMPT_CHARS = 20000;
+	const DRAFT_MAX_BYTES = 64 * 1024;
+
+	const SLIDING_CONTEXT_TRIGGER_MESSAGES = 40;
+	const SLIDING_CONTEXT_TRIGGER_CHARS = 180000;
+	const SLIDING_CONTEXT_MAX_MESSAGES = 24;
+	const SLIDING_CONTEXT_MAX_CHARS = 90000;
+
+	let contextWindowingInfo = {
+		active: false,
+		includedMessages: 0,
+		totalMessages: 0
+	};
+
+	const getDraftCacheKey = (chatIdValue) => `${DRAFT_CACHE_PREFIX}${chatIdValue ?? ''}`;
+
+	const resetDraftInput = () => {
+		prompt = '';
+		files = [];
+		selectedToolIds = [];
+		webSearchEnabled = false;
+	};
+
+	const getStringByteLength = (value) => {
+		try {
+			return new TextEncoder().encode(value ?? '').length;
+		} catch (error) {
+			return (value ?? '').length;
+		}
+	};
+
+	const sanitizeDraftInput = (input) => {
+		const nextPrompt = typeof input?.prompt === 'string' ? input.prompt : '';
+		if (!nextPrompt.trim()) {
+			return null;
+		}
+		if (nextPrompt.length > DRAFT_MAX_PROMPT_CHARS) {
+			return null;
+		}
+
+		const sanitizedInput = {
+			prompt: nextPrompt,
+			files: Array.isArray(input?.files) ? input.files : [],
+			selectedToolIds: Array.isArray(input?.selectedToolIds) ? input.selectedToolIds : [],
+			webSearchEnabled: Boolean(input?.webSearchEnabled)
+		};
+
+		if (getStringByteLength(JSON.stringify(sanitizedInput)) > DRAFT_MAX_BYTES) {
+			return null;
+		}
+
+		return sanitizedInput;
+	};
+
+	const removeDraftInputCache = (chatIdValue) => {
+		if (!chatIdValue) {
+			return;
+		}
+
+		localStorage.removeItem(getDraftCacheKey(chatIdValue));
+	};
+
+	const persistDraftInputCache = (chatIdValue, input) => {
+		if (!chatIdValue) {
+			return;
+		}
+
+		const sanitizedInput = sanitizeDraftInput(input);
+		if (!sanitizedInput) {
+			removeDraftInputCache(chatIdValue);
+			return;
+		}
+
+		localStorage.setItem(getDraftCacheKey(chatIdValue), JSON.stringify(sanitizedInput));
+	};
+
+	const restoreDraftInputCache = (chatIdValue) => {
+		if (!chatIdValue) {
+			return null;
+		}
+
+		const key = getDraftCacheKey(chatIdValue);
+		const cachedInput = localStorage.getItem(key);
+		if (!cachedInput) {
+			return null;
+		}
+
+		try {
+			const parsedInput = JSON.parse(cachedInput);
+			const sanitizedInput = sanitizeDraftInput(parsedInput);
+			if (!sanitizedInput) {
+				localStorage.removeItem(key);
+				return null;
+			}
+
+			return sanitizedInput;
+		} catch (error) {
+			localStorage.removeItem(key);
+			return null;
+		}
+	};
+
+	const applyDraftInputCache = (chatIdValue) => {
+		const cachedInput = restoreDraftInputCache(chatIdValue);
+		if (!cachedInput) {
+			resetDraftInput();
+			return;
+		}
+
+		prompt = cachedInput.prompt;
+		files = cachedInput.files;
+		selectedToolIds = cachedInput.selectedToolIds;
+		webSearchEnabled = cachedInput.webSearchEnabled;
+	};
+	const cleanupDraftInputCache = () => {
+		try {
+			const keys = [];
+			for (let idx = 0; idx < localStorage.length; idx += 1) {
+				const key = localStorage.key(idx);
+				if (key?.startsWith(DRAFT_CACHE_PREFIX)) {
+					keys.push(key);
+				}
+			}
+
+			for (const key of keys) {
+				const cachedInput = localStorage.getItem(key);
+				if (!cachedInput) {
+					continue;
+				}
+
+				try {
+					const parsedInput = JSON.parse(cachedInput);
+					if (!sanitizeDraftInput(parsedInput)) {
+						localStorage.removeItem(key);
+					}
+				} catch (error) {
+					localStorage.removeItem(key);
+				}
+			}
+		} catch (error) {
+			console.warn("Failed to cleanup draft cache", error);
+		}
+	};
+
+
+	const queueChatSave = async (_chatId, options = { notifyOnFailure: true }) => {
+		const { notifyOnFailure = true } = options ?? {};
+
+		try {
+			await saveChatHandler(_chatId);
+			return true;
+		} catch (error) {
+			console.error('Failed to save chat', error);
+			if (notifyOnFailure) {
+				toast.warning(
+					$i18n.t('We could not save this chat right now. Your response is still queued.')
+				);
+			}
+
+			return false;
+		}
+	};
+
+	const getMessageContentLength = (message) => {
+		const content = message?.merged?.content ?? message?.content;
+		return typeof content === 'string' ? content.length : 0;
+	};
+
+	const getContextWindow = (messages) => {
+		const totalChars = messages.reduce((sum, message) => sum + getMessageContentLength(message), 0);
+
+		let windowedMessages = messages;
+		if (
+			messages.length > SLIDING_CONTEXT_TRIGGER_MESSAGES ||
+			totalChars > SLIDING_CONTEXT_TRIGGER_CHARS
+		) {
+			windowedMessages = messages.slice(-SLIDING_CONTEXT_MAX_MESSAGES);
+
+			let windowedChars = windowedMessages.reduce(
+				(sum, message) => sum + getMessageContentLength(message),
+				0
+			);
+
+			while (windowedChars > SLIDING_CONTEXT_MAX_CHARS && windowedMessages.length > 2) {
+				windowedMessages = windowedMessages.slice(1);
+				windowedChars = windowedMessages.reduce(
+					(sum, message) => sum + getMessageContentLength(message),
+					0
+				);
+			}
+		}
+
+		return {
+			messages: windowedMessages,
+			active: windowedMessages.length < messages.length,
+			totalMessages: messages.length
+		};
+	};
+
+	let currentMessagePath = [];
+	$: currentMessagePath = createMessagesList(history.currentId);
+
 	$: if (chatIdProp) {
 		(async () => {
 			console.log(chatIdProp);
 
-			prompt = '';
-			files = [];
-			selectedToolIds = [];
-			webSearchEnabled = false;
+			resetDraftInput();
+			contextWindowingInfo = {
+				active: false,
+				includedMessages: 0,
+				totalMessages: 0
+			};
 
 			loaded = false;
 
@@ -144,16 +349,7 @@
 				await tick();
 				loaded = true;
 
-				if (localStorage.getItem(`chat-input-${chatIdProp}`)) {
-					try {
-						const input = JSON.parse(localStorage.getItem(`chat-input-${chatIdProp}`));
-
-						prompt = input.prompt;
-						files = input.files;
-						selectedToolIds = input.selectedToolIds;
-						webSearchEnabled = input.webSearchEnabled;
-					} catch (e) {}
-				}
+				applyDraftInputCache(chatIdProp);
 
 				window.setTimeout(() => scrollToBottom(), 0);
 				const chatInput = document.getElementById('chat-input');
@@ -371,6 +567,7 @@
 		window.addEventListener('message', onMessageHandler);
 		$socket?.on('chat-events', chatEventHandler);
 
+		cleanupDraftInputCache();
 		if (!$chatId) {
 			chatIdUnsubscriber = chatId.subscribe(async (value) => {
 				if (!value) {
@@ -383,20 +580,6 @@
 			}
 		}
 
-		if (localStorage.getItem(`chat-input-${chatIdProp}`)) {
-			try {
-				const input = JSON.parse(localStorage.getItem(`chat-input-${chatIdProp}`));
-				prompt = input.prompt;
-				files = input.files;
-				selectedToolIds = input.selectedToolIds;
-				webSearchEnabled = input.webSearchEnabled;
-			} catch (e) {
-				prompt = '';
-				files = [];
-				selectedToolIds = [];
-				webSearchEnabled = false;
-			}
-		}
 
 		showControls.subscribe(async (value) => {
 			if (controlPane && !$mobile) {
@@ -807,12 +990,20 @@
 			return [];
 		}
 
-		const message = history.messages[responseMessageId];
-		if (message?.parentId) {
-			return [...createMessagesList(message.parentId), message];
-		} else {
-			return [message];
+		const messages = [];
+		let currentMessageId = responseMessageId;
+
+		while (currentMessageId) {
+			const message = history.messages[currentMessageId];
+			if (!message) {
+				break;
+			}
+
+			messages.unshift(message);
+			currentMessageId = message.parentId;
 		}
+
+		return messages;
 	};
 
 	const chatCompletedHandler = async (chatId, modelId, responseMessageId, messages) => {
@@ -961,7 +1152,7 @@
 				done: true,
 
 				model: modelId,
-				modelName: model.name ?? model.id,
+				modelName: model?.name ?? model?.id ?? modelId,
 				modelIdx: 0,
 				timestamp: Math.floor(Date.now() / 1000)
 			};
@@ -1020,8 +1211,8 @@
 					parentId: currentParentId,
 					childrenIds: [],
 					done: true,
-					model: model.id,
-					modelName: model.name ?? model.id,
+					model: model?.id ?? modelId,
+					modelName: model?.name ?? model?.id ?? modelId,
 					modelIdx: 0,
 					timestamp: Math.floor(Date.now() / 1000),
 					...message
@@ -1206,7 +1397,8 @@
 			selectedModels = _selectedModels;
 		}
 
-		if (userPrompt === '') {
+		const trimmedPrompt = userPrompt?.trim?.() ?? '';
+		if (trimmedPrompt === '') {
 			toast.error($i18n.t('Please enter a prompt'));
 			return;
 		}
@@ -1215,11 +1407,23 @@
 			return;
 		}
 
-		if (messages.length != 0 && messages.at(-1).done != true) {
-			// Response not done
-			return;
+		const lastMessage = messages.length !== 0 ? messages.at(-1) : null;
+		if (lastMessage?.role === 'assistant' && lastMessage.done !== true) {
+			const hasStreamedContent =
+				Boolean(lastMessage?.content?.trim?.()) || (lastMessage?.statusHistory?.length ?? 0) > 0;
+
+			if (hasStreamedContent) {
+				// Response is still in progress
+				return;
+			}
+
+			history.messages[lastMessage.id] = {
+				...lastMessage,
+				done: true
+			};
 		}
-		if (messages.length != 0 && messages.at(-1).error) {
+
+		if (lastMessage?.error) {
 			// Error in response
 			toast.error($i18n.t(`Oops! There was an error in the previous response.`));
 			return;
@@ -1311,9 +1515,14 @@
 			history.messages[history.currentId].parentId === null &&
 			history.messages[history.currentId].role === 'user'
 		) {
-			await initChatHandler();
+			try {
+				await initChatHandler();
+			} catch (error) {
+				console.error(error);
+				toast.warning($i18n.t('Starting this chat took longer than expected. Sending anyway.'));
+			}
 		} else {
-			await saveChatHandler($chatId);
+			void queueChatSave($chatId, { notifyOnFailure: false });
 		}
 
 		// If modelId is provided, use it, else use selected model
@@ -1336,8 +1545,8 @@
 					childrenIds: [],
 					role: 'assistant',
 					content: '',
-					model: model.id,
-					modelName: model.name ?? model.id,
+					model: model?.id ?? modelId,
+					modelName: model?.name ?? model?.id ?? modelId,
 					modelIdx: modelIdx ? modelIdx : _modelIdx,
 					userContext: null,
 					timestamp: Math.floor(Date.now() / 1000) // Unix epoch
@@ -1360,19 +1569,19 @@
 		}
 		await tick();
 
-		// Save chat after all messages have been created
-		await saveChatHandler($chatId);
+		// Save chat after all messages have been created (non-blocking)
+		void queueChatSave($chatId);
 
 		const _chatId = JSON.parse(JSON.stringify($chatId));
+		const parentMessages = createMessagesList(parentId);
 		await Promise.all(
 			selectedModelIds.map(async (modelId, _modelIdx) => {
 				console.log('modelId', modelId);
 				const model = $models.filter((m) => m.id === modelId).at(0);
 
 				if (model) {
-					const messages = createMessagesList(parentId);
 					// If there are image files, check if model is vision capable
-					const hasImages = messages.some((message) =>
+					const hasImages = parentMessages.some((message) =>
 						message.files?.some((file) => file.type === 'image')
 					);
 
@@ -1415,7 +1624,7 @@
 					const chatEventEmitter = await getChatEventEmitter(model.id, _chatId);
 
 					scrollToBottom();
-					await sendPromptSocket(model, responseMessageId, _chatId);
+					await sendPromptSocket(model, responseMessageId, _chatId, parentMessages);
 
 					if (chatEventEmitter) clearInterval(chatEventEmitter);
 				} else {
@@ -1428,7 +1637,7 @@
 		chats.set(await getChatList(localStorage.token, $currentChatPage));
 	};
 
-	const sendPromptSocket = async (model, responseMessageId, _chatId) => {
+	const sendPromptSocket = async (model, responseMessageId, _chatId, parentMessages = null) => {
 		const responseMessage = history.messages[responseMessageId];
 		const userMessage = history.messages[responseMessage.parentId];
 
@@ -1461,7 +1670,14 @@
 			params?.stream_response ??
 			true;
 
-		const messages = [
+		const contextWindow = getContextWindow(parentMessages ?? createMessagesList(responseMessage.parentId));
+		contextWindowingInfo = {
+			active: contextWindow.active,
+			includedMessages: contextWindow.messages.length,
+			totalMessages: contextWindow.totalMessages
+		};
+
+		const requestMessages = [
 			params?.system || $settings.system || (responseMessage?.userContext ?? null)
 				? {
 						role: 'system',
@@ -1478,10 +1694,10 @@
 						}`
 					}
 				: undefined,
-			...createMessagesList(responseMessageId)
+			...contextWindow.messages
 		]
 			.filter((message) => message?.content?.trim())
-			.map((message, idx, arr) => ({
+			.map((message) => ({
 				role: message.role,
 				...((message.files?.filter((file) => file.type === 'image').length > 0 ?? false) &&
 				message.role === 'user'
@@ -1510,8 +1726,8 @@
 			localStorage.token,
 			{
 				stream: stream,
-				model: model.id,
-				messages: messages,
+					model: model.id,
+				messages: requestMessages,
 				params: {
 					...$settings?.params,
 					...params,
@@ -1537,10 +1753,10 @@
 				id: responseMessageId,
 
 				...(!$temporaryChatEnabled &&
-				(messages.length == 1 ||
-					(messages.length == 2 &&
-						messages.at(0)?.role === 'system' &&
-						messages.at(1)?.role === 'user')) &&
+				(requestMessages.length == 1 ||
+					(requestMessages.length == 2 &&
+						requestMessages.at(0)?.role === 'system' &&
+						requestMessages.at(1)?.role === 'user')) &&
 				selectedModels[0] === model.id
 					? {
 							background_tasks: {
@@ -1762,7 +1978,7 @@
 				system: $settings.system ?? undefined,
 				params: params,
 				history: history,
-				messages: createMessagesList(history.currentId),
+				messages: currentMessagePath,
 				tags: [],
 				timestamp: Date.now()
 			});
@@ -1784,7 +2000,7 @@
 				chat = await updateChatById(localStorage.token, _chatId, {
 					models: selectedModels,
 					history: history,
-					messages: createMessagesList(history.currentId),
+					messages: currentMessagePath,
 					params: params,
 					files: chatFiles
 				});
@@ -1892,7 +2108,7 @@
 				{/if}
 
 				<div class="flex flex-col flex-auto z-10 w-full">
-					{#if $settings?.landingPageMode === 'chat' || createMessagesList(history.currentId).length > 0}
+					{#if $settings?.landingPageMode === 'chat' || currentMessagePath.length > 0}
 						<div
 							class=" pb-2.5 flex flex-col justify-between w-full flex-auto overflow-auto h-0 max-w-full z-10 scrollbar-hidden"
 							id="messages-container"
@@ -1937,11 +2153,7 @@
 								{stopResponse}
 								{createMessagePair}
 								onChange={(input) => {
-									if (input.prompt) {
-										localStorage.setItem(`chat-input-${$chatId}`, JSON.stringify(input));
-									} else {
-										localStorage.removeItem(`chat-input-${$chatId}`);
-									}
+									persistDraftInputCache($chatId || chatIdProp, input);
 								}}
 								on:upload={async (e) => {
 									const { type, data } = e.detail;
@@ -1965,6 +2177,17 @@
 									}
 								}}
 							/>
+							{#if contextWindowingInfo.active}
+								<div class="mt-2 text-xs text-amber-600 dark:text-amber-400 text-center px-4">
+									{$i18n.t(
+										'Long chat mode is active. Using the most recent {{included}} of {{total}} messages for this response.',
+										{
+											included: contextWindowingInfo.includedMessages,
+											total: contextWindowingInfo.totalMessages
+										}
+									)}
+								</div>
+							{/if}
 
 							<div
 								class="absolute bottom-1 text-xs text-gray-500 text-center line-clamp-1 right-0 left-0"

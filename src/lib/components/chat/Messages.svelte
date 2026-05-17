@@ -45,6 +45,40 @@
 	let messagesCount = 20;
 	let messagesLoading = false;
 
+	const DEFAULT_MESSAGES_COUNT = 20;
+	const LONG_CHAT_INITIAL_MESSAGES_COUNT = 8;
+	const LONG_CHAT_MESSAGE_THRESHOLD = 80;
+	const LONG_CHAT_CHAR_THRESHOLD = 250000;
+
+	let initializedMessagesCountForChatId = '';
+	let lastSeenChatId = '';
+
+	const getContentLength = (message) => {
+		const content = message?.merged?.content ?? message?.content;
+		return typeof content === 'string' ? content.length : 0;
+	};
+
+	const getInitialMessagesCount = (_history) => {
+		const historyMessages = Object.values(_history?.messages ?? {});
+		if (historyMessages.length === 0) {
+			return DEFAULT_MESSAGES_COUNT;
+		}
+
+		if (historyMessages.length >= LONG_CHAT_MESSAGE_THRESHOLD) {
+			return LONG_CHAT_INITIAL_MESSAGES_COUNT;
+		}
+
+		let totalChars = 0;
+		for (const message of historyMessages) {
+			totalChars += getContentLength(message);
+			if (totalChars >= LONG_CHAT_CHAR_THRESHOLD) {
+				return LONG_CHAT_INITIAL_MESSAGES_COUNT;
+			}
+		}
+
+		return DEFAULT_MESSAGES_COUNT;
+	};
+
 	const loadMoreMessages = async () => {
 		// scroll slightly down to disable continuous loading
 		const element = document.getElementById('messages-container');
@@ -58,12 +92,27 @@
 		messagesLoading = false;
 	};
 
+	$: if (chatId !== lastSeenChatId) {
+		lastSeenChatId = chatId;
+		initializedMessagesCountForChatId = '';
+		messagesCount = DEFAULT_MESSAGES_COUNT;
+	}
+
+	$: if (
+		chatId &&
+		initializedMessagesCountForChatId !== chatId &&
+		Object.keys(history?.messages ?? {}).length > 0
+	) {
+		initializedMessagesCountForChatId = chatId;
+		messagesCount = getInitialMessagesCount(history);
+	}
+
 	$: if (history.currentId) {
 		let _messages = [];
 
 		let message = history.messages[history.currentId];
-		while (message && _messages.length <= messagesCount) {
-			_messages.unshift({ ...message });
+		while (message && _messages.length < messagesCount) {
+			_messages.unshift(message);
 			message = message.parentId !== null ? history.messages[message.parentId] : null;
 		}
 
@@ -374,12 +423,11 @@
 				<div class="w-full">
 					{#if messages.at(0)?.parentId !== null}
 						<Loader
-							on:visible={(e) => {
-								console.log('visible');
-								if (!messagesLoading) {
-									loadMoreMessages();
-								}
-							}}
+								on:visible={() => {
+									if (!messagesLoading && autoScroll === false) {
+										loadMoreMessages();
+									}
+								}}
 						>
 							<div class="w-full flex justify-center py-1 text-xs animate-pulse items-center gap-2">
 								<Spinner className=" size-4" />

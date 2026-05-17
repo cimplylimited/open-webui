@@ -49,6 +49,46 @@
 		throwOnError: false
 	};
 
+	let contentSyncRunId = 0;
+
+	const normalizeMarkedInput = (input) => (input ?? '').replaceAll(`\n<br/>`, `<br/>`);
+
+	const parseMarkdownContent = async (input, attempts = 3, interval = 100) => {
+		let remainingAttempts = attempts;
+
+		while (remainingAttempts > 0) {
+			try {
+				return await Promise.resolve(
+					marked.parse(normalizeMarkedInput(input), {
+						breaks: false
+					})
+				);
+			} catch (error) {
+				remainingAttempts -= 1;
+				if (remainingAttempts <= 0) {
+					console.warn('Failed to parse markdown input, using raw content fallback', error);
+					return input ?? '';
+				}
+
+				await new Promise((resolve) => setTimeout(resolve, interval));
+			}
+		}
+
+		return input ?? '';
+	};
+
+	const syncEditorContentFromValue = async (nextValue) => {
+		const syncId = ++contentSyncRunId;
+		const parsedContent = await parseMarkdownContent(nextValue, 1, 0);
+
+		if (!editor || syncId !== contentSyncRunId) {
+			return;
+		}
+
+		editor.commands.setContent(parsedContent);
+		selectTemplate();
+	};
+
 	// Function to find the next template in the document
 	function findNextTemplate(doc, from = 0) {
 		const patterns = [
@@ -137,30 +177,14 @@
 			});
 		}
 
-		async function tryParse(value, attempts = 3, interval = 100) {
-			try {
-				// Try parsing the value
-				return marked.parse(value.replaceAll(`\n<br/>`, `<br/>`), {
-					breaks: false
-				});
-			} catch (error) {
-				// If no attempts remain, fallback to plain text
-				if (attempts <= 1) {
-					return value;
-				}
-				// Wait for the interval, then retry
-				await new Promise((resolve) => setTimeout(resolve, interval));
-				return tryParse(value, attempts - 1, interval); // Recursive call
-			}
-		}
-
-		// Usage example
-		let content = await tryParse(value);
+		let content = await parseMarkdownContent(value);
 
 		editor = new Editor({
 			element: element,
 			extensions: [
-				StarterKit,
+				StarterKit.configure({
+					codeBlock: false
+				}),
 				CodeBlockLowlight.configure({
 					lowlight
 				}),
@@ -350,12 +374,7 @@
 				)
 				.replace(/\u00a0/g, ' ')
 	) {
-		editor.commands.setContent(
-			marked.parse(value.replaceAll(`\n<br/>`, `<br/>`), {
-				breaks: false
-			})
-		); // Update editor content
-		selectTemplate();
+		syncEditorContentFromValue(value);
 	}
 </script>
 

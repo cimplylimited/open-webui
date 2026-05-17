@@ -28,13 +28,25 @@
 	marked.use(markedKatexExtension(options));
 	marked.use(markedExtension(options));
 
-	$: (async () => {
-		if (content) {
-			tokens = marked.lexer(
-				replaceTokens(processResponseContent(content), sourceIds, model?.name, $user?.name)
+	$: {
+		if (!content) {
+			tokens = [];
+		} else {
+			const processedContent = replaceTokens(
+				processResponseContent(content),
+				sourceIds,
+				model?.name,
+				$user?.name
 			);
+
+			try {
+				tokens = marked.lexer(processedContent);
+			} catch (error) {
+				console.warn('Failed to parse markdown tokens, using plain text fallback', error);
+				tokens = [{ type: 'text', raw: processedContent, text: processedContent }];
+			}
 		}
-	})();
+	}
 </script>
 
 {#key id}

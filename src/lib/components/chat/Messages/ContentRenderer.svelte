@@ -24,6 +24,26 @@
 
 	let floatingButtonsElement;
 
+	const LONG_CONTENT_RENDER_THRESHOLD = 30000;
+	const LONG_CONTENT_PREVIEW_SUFFIX =
+		'\n\n---\n[Long message preview loaded for performance. Click below to render full content.]';
+
+	let previousContentId = null;
+	let showFullContent = false;
+	let isLongContent = false;
+	let displayContent = '';
+
+	$: if (id !== previousContentId) {
+		previousContentId = id;
+		showFullContent = false;
+	}
+
+	$: isLongContent = typeof content === 'string' && content.length > LONG_CONTENT_RENDER_THRESHOLD;
+	$: displayContent =
+		isLongContent && !showFullContent
+			? `${content.slice(0, LONG_CONTENT_RENDER_THRESHOLD)}${LONG_CONTENT_PREVIEW_SUFFIX}`
+			: content;
+
 	const updateButtonPosition = (event) => {
 		const buttonsContainerElement = document.getElementById(`floating-buttons-${id}`);
 		if (
@@ -110,9 +130,22 @@
 </script>
 
 <div bind:this={contentContainerElement}>
+	{#if isLongContent && !showFullContent}
+		<div class="mb-2 text-xs text-amber-600 dark:text-amber-400">
+			<button
+				class="underline underline-offset-2"
+				on:click={() => {
+					showFullContent = true;
+				}}
+			>
+				{$i18n.t('Load full message content')}
+			</button>
+		</div>
+	{/if}
+
 	<Markdown
 		{id}
-		{content}
+		content={displayContent}
 		{model}
 		{save}
 		sourceIds={(sources ?? []).reduce((acc, s) => {
@@ -157,6 +190,20 @@
 			}
 		}}
 	/>
+
+	{#if isLongContent && showFullContent}
+		<div class="mt-2 text-xs text-amber-600 dark:text-amber-400">
+			<button
+				class="underline underline-offset-2"
+				on:click={() => {
+					showFullContent = false;
+					closeFloatingButtons();
+				}}
+			>
+				{$i18n.t('Collapse to preview')}
+			</button>
+		</div>
+	{/if}
 </div>
 
 {#if floatingButtons && model}

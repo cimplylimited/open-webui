@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { updateUserPassword } from '$lib/apis/auths';
 
 	const i18n = getContext('i18n');
@@ -14,7 +15,7 @@
 		if (newPassword === newPasswordConfirm) {
 			const res = await updateUserPassword(localStorage.token, currentPassword, newPassword).catch(
 				(error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					return null;
 				}
 			);

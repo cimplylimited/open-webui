@@ -1,30 +1,7 @@
-import { AUDIO_API_BASE_URL } from '$lib/constants';
+import { apiFetch } from '$lib/apis/client';
 
 export const getAudioConfig = async (token: string) => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/config`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/v1/audio/config', { token });
 };
 
 type OpenAIConfigForm = {
@@ -35,63 +12,17 @@ type OpenAIConfigForm = {
 };
 
 export const updateAudioConfig = async (token: string, payload: OpenAIConfigForm) => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/config/update`, {
+	return await apiFetch('/api/v1/audio/config/update', {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			...payload
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify({ ...payload }),
+		token
+	});
 };
 
 export const transcribeAudio = async (token: string, file: File) => {
 	const data = new FormData();
 	data.append('file', file);
-
-	let error = null;
-	const res = await fetch(`${AUDIO_API_BASE_URL}/transcriptions`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: data
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.log(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/v1/audio/transcriptions', { method: 'POST', body: data, token });
 };
 
 export const synthesizeOpenAISpeech = async (
@@ -100,36 +31,12 @@ export const synthesizeOpenAISpeech = async (
 	text: string = '',
 	model?: string
 ) => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/speech`, {
+	return await apiFetch('/api/v1/audio/speech', {
 		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			input: text,
-			voice: speaker,
-			...(model && { model })
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.log(err);
-
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify({ input: text, voice: speaker, ...(model && { model }) }),
+		token,
+		responseType: 'response'
+	});
 };
 
 interface AvailableModelsResponse {
@@ -137,57 +44,9 @@ interface AvailableModelsResponse {
 }
 
 export const getModels = async (token: string = ''): Promise<AvailableModelsResponse> => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/models`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.log(err);
-
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/v1/audio/models', { token });
 };
 
 export const getVoices = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/voices`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.log(err);
-
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/v1/audio/voices', { token });
 };

@@ -5,6 +5,7 @@
 
 	import { createNewKnowledge, getKnowledgeBases } from '$lib/apis/knowledge';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { knowledge } from '$lib/stores';
 	import AccessControl from '../common/AccessControl.svelte';
 
@@ -31,7 +32,7 @@
 			description,
 			accessControl
 		).catch((e) => {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 		});
 
 		if (res) {

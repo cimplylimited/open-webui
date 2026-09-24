@@ -10,6 +10,7 @@
 	import Messages from './Messages.svelte';
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	export let threadId = null;
 	export let channel = null;
@@ -128,7 +129,7 @@
 			content: content,
 			data: data
 		}).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 	};

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import dayjs from 'dayjs';
 	import { getContext, createEventDispatcher } from 'svelte';
 
@@ -124,7 +125,7 @@
 																	localStorage.token,
 																	memory.id
 																).catch((error) => {
-																	toast.error(error);
+																	toast.error(normalizeErrorMessage(error));
 																	return null;
 																});
 
@@ -177,7 +178,7 @@
 					class=" px-3.5 py-1.5 font-medium text-red-500 hover:bg-black/5 dark:hover:bg-white/5 outline outline-1 outline-red-300 dark:outline-red-800 rounded-3xl"
 					on:click={async () => {
 						const res = await deleteMemoriesByUserId(localStorage.token).catch((error) => {
-							toast.error(error);
+							toast.error(normalizeErrorMessage(error));
 							return null;
 						});
 

@@ -6,6 +6,7 @@
 	import { onMount, getContext } from 'svelte';
 	import { config, user } from '$lib/stores';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { getAllUserChats } from '$lib/apis/chats';
 	import { exportConfig, importConfig } from '$lib/apis/configs';
 
@@ -47,7 +48,7 @@
 					reader.onload = async (e) => {
 						const res = await importConfig(localStorage.token, JSON.parse(e.target.result)).catch(
 							(error) => {
-								toast.error(error);
+								toast.error(normalizeErrorMessage(error));
 							}
 						);
 
@@ -132,7 +133,7 @@
 							// exportAllUserChats();
 
 							downloadDatabase(localStorage.token).catch((error) => {
-								toast.error(error);
+								toast.error(normalizeErrorMessage(error));
 							});
 						}}
 					>

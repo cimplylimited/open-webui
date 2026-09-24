@@ -40,6 +40,7 @@
 	} from '$lib/apis/chats';
 	import { createNewFolder, getFolders, updateFolderParentIdById } from '$lib/apis/folders';
 	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	import ArchivedChatsModal from './Sidebar/ArchivedChatsModal.svelte';
 	import UserMenu from './Sidebar/UserMenu.svelte';
@@ -76,27 +77,9 @@
 
 	let folders = {};
 
-	const getErrorMessage = (error: unknown, fallback = 'Failed to load data.') => {
-		if (typeof error === 'string' && error.trim().length > 0) {
-			return error;
-		}
-
-		if (typeof error === 'object' && error !== null) {
-			if ('detail' in error && typeof error.detail === 'string' && error.detail.trim().length > 0) {
-				return error.detail;
-			}
-
-			if ('message' in error && typeof error.message === 'string' && error.message.trim().length > 0) {
-				return error.message;
-			}
-		}
-
-		return fallback;
-	};
-
 	const initFolders = async () => {
 		const folderList = await getFolders(localStorage.token).catch((error) => {
-			toast.error(getErrorMessage(error, 'Failed to load folders.'));
+			toast.error(normalizeErrorMessage(error));
 			return [];
 		});
 
@@ -165,7 +148,7 @@
 		};
 
 		const res = await createNewFolder(localStorage.token, name).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -196,15 +179,15 @@
 		}
 
 		if (tagsResult.status === 'rejected') {
-			toast.error(getErrorMessage(tagsResult.reason, 'Failed to load tags.'));
+			toast.error(normalizeErrorMessage(tagsResult.reason));
 		}
 
 		if (pinnedResult.status === 'rejected') {
-			toast.error(getErrorMessage(pinnedResult.reason, 'Failed to load pinned chats.'));
+			toast.error(normalizeErrorMessage(pinnedResult.reason));
 		}
 
 		if (foldersResult.status === 'rejected') {
-			toast.error(getErrorMessage(foldersResult.reason, 'Failed to load folders.'));
+			toast.error(normalizeErrorMessage(foldersResult.reason));
 		}
 
 		try {
@@ -214,7 +197,7 @@
 				await chats.set(await getChatList(localStorage.token, 1));
 			}
 		} catch (error) {
-			toast.error(getErrorMessage(error, 'Failed to load chats.'));
+			toast.error(normalizeErrorMessage(error));
 			await chats.set([]);
 			allChatsLoaded = true;
 		}
@@ -237,7 +220,7 @@
 				newChatList = await getChatList(localStorage.token, $currentChatPage);
 			}
 		} catch (error) {
-			toast.error(getErrorMessage(error, 'Failed to load more chats.'));
+			toast.error(normalizeErrorMessage(error));
 			newChatList = [];
 		}
 
@@ -251,7 +234,6 @@
 	let searchDebounceTimeout;
 
 	const searchDebounceHandler = async () => {
-		console.log('search', search);
 		chats.set(null);
 
 		if (searchDebounceTimeout) {
@@ -269,7 +251,7 @@
 				try {
 					await chats.set(await getChatListBySearchText(localStorage.token, search));
 				} catch (error) {
-					toast.error(getErrorMessage(error, 'Failed to search chats.'));
+					toast.error(normalizeErrorMessage(error));
 					await chats.set([]);
 					allChatsLoaded = true;
 					return;
@@ -279,7 +261,7 @@
 					try {
 						tags.set(await getAllTags(localStorage.token));
 					} catch (error) {
-						toast.error(getErrorMessage(error, 'Failed to load tags.'));
+						toast.error(normalizeErrorMessage(error));
 						tags.set([]);
 					}
 				}
@@ -288,9 +270,7 @@
 	};
 
 	const importChatHandler = async (items, pinned = false, folderId = null) => {
-		console.log('importChatHandler', items, pinned, folderId);
 		for (const item of items) {
-			console.log(item);
 			if (item.chat) {
 				await importChat(localStorage.token, item.chat, item?.meta ?? {}, pinned, folderId);
 			}
@@ -300,8 +280,6 @@
 	};
 
 	const inputFilesHandler = async (files) => {
-		console.log(files);
-
 		for (const file of files) {
 			const reader = new FileReader();
 			reader.onload = async (e) => {
@@ -320,7 +298,6 @@
 	};
 
 	const tagEventHandler = async (type, tagName, chatId) => {
-		console.log(type, tagName, chatId);
 		if (type === 'delete') {
 			initChatList();
 		} else if (type === 'add') {
@@ -347,15 +324,12 @@
 
 	const onDrop = async (e) => {
 		e.preventDefault();
-		console.log(e); // Log the drop event
 
-		// Perform file drop check and handle it accordingly
 		if (e.dataTransfer?.files) {
 			const inputFiles = Array.from(e.dataTransfer?.files);
 
 			if (inputFiles && inputFiles.length > 0) {
-				console.log(inputFiles); // Log the dropped files
-				inputFilesHandler(inputFiles); // Handle the dropped files
+				inputFilesHandler(inputFiles);
 			}
 		}
 
@@ -380,7 +354,6 @@
 
 	const onTouchStart = (e) => {
 		touchstart = e.changedTouches[0];
-		console.log(touchstart.clientX);
 	};
 
 	const onTouchEnd = (e) => {
@@ -476,7 +449,7 @@
 			name: name,
 			access_control: access_control
 		}).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -677,11 +650,10 @@
 						}
 
 						if (chat) {
-							console.log(chat);
 							if (chat.folder_id) {
 								const res = await updateChatFolderIdById(localStorage.token, chat.id, null).catch(
 									(error) => {
-										toast.error(error);
+										toast.error(normalizeErrorMessage(error));
 										return null;
 									}
 								);
@@ -700,7 +672,7 @@
 
 						const res = await updateFolderParentIdById(localStorage.token, id, null).catch(
 							(error) => {
-								toast.error(error);
+								toast.error(normalizeErrorMessage(error));
 								return null;
 							}
 						);
@@ -722,7 +694,6 @@
 							bind:open={showPinnedChat}
 							on:change={(e) => {
 								localStorage.setItem('showPinnedChat', e.detail);
-								console.log(e.detail);
 							}}
 							on:import={(e) => {
 								importChatHandler(e.detail, true);
@@ -739,14 +710,13 @@
 									}
 
 									if (chat) {
-										console.log(chat);
 										if (chat.folder_id) {
 											const res = await updateChatFolderIdById(
 												localStorage.token,
 												chat.id,
 												null
 											).catch((error) => {
-												toast.error(error);
+												toast.error(normalizeErrorMessage(error));
 												return null;
 											});
 										}

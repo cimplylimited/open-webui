@@ -41,6 +41,7 @@
 	export let messageInput = false;
 	export let shiftEnter = false;
 	export let largeTextAsFile = false;
+	export let draftKey = '';
 
 	let element;
 	let editor;
@@ -50,6 +51,7 @@
 	};
 
 	let contentSyncRunId = 0;
+	let lastEmittedMarkdown = '';
 
 	const normalizeMarkedInput = (input) => (input ?? '').replaceAll(`\n<br/>`, `<br/>`);
 
@@ -78,6 +80,9 @@
 	};
 
 	const syncEditorContentFromValue = async (nextValue) => {
+		// Set synchronously before await so that the onTransaction fired by setContent
+		// below sees a matching lastEmittedMarkdown and does not re-enter this function.
+		lastEmittedMarkdown = nextValue;
 		const syncId = ++contentSyncRunId;
 		const parsedContent = await parseMarkdownContent(nextValue, 1, 0);
 
@@ -166,7 +171,6 @@
 	};
 
 	onMount(async () => {
-		console.log(value);
 
 		if (preserveBreaks) {
 			turndownService.addRule('preserveBreaks', {
@@ -212,9 +216,11 @@
 			],
 			content: content,
 			autofocus: messageInput ? true : false,
-			onTransaction: () => {
+			onTransaction: ({ transaction }) => {
 				// force re-render so `editor.isActive` works as expected
 				editor = editor;
+				// Skip expensive serialization for cursor/selection-only transactions.
+				if (!transaction.docChanged) return;
 				let newValue = turndownService
 					.turndown(
 						editor
@@ -230,6 +236,7 @@
 
 				if (value !== newValue) {
 					value = newValue;
+					lastEmittedMarkdown = newValue;
 
 					// check if the node is paragraph as well
 					if (editor.isActive('paragraph')) {
@@ -361,21 +368,10 @@
 		}
 	});
 
-	// Update the editor content if the external `value` changes
-	$: if (
-		editor &&
-		value !==
-			turndownService
-				.turndown(
-					(preserveBreaks
-						? editor.getHTML().replace(/<p><\/p>/g, '<br/>')
-						: editor.getHTML()
-					).replace(/ {2,}/g, (m) => m.replace(/ /g, '\u00a0'))
-				)
-				.replace(/\u00a0/g, ' ')
-	) {
-		syncEditorContentFromValue(value);
-	}
+	// Update the editor content if the external `value` changes.
+	// lastEmittedMarkdown prevents re-entry when the editor itself drove the change.
+	// contentSyncRunId (inside syncEditorContentFromValue) prevents stale async overwrites.
+	$: if (editor && value !== lastEmittedMarkdown) syncEditorContentFromValue(value);
 </script>
 
 <div bind:this={element} class="relative w-full min-w-full h-full min-h-fit {className}" />

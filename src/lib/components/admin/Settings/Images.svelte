@@ -5,6 +5,7 @@
 	import { config as backendConfig, user } from '$lib/stores';
 
 	import { getBackendConfig } from '$lib/apis';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import {
 		getImageGenerationModels,
 		getImageGenerationConfig,
@@ -99,7 +100,7 @@
 
 	const getModels = async () => {
 		models = await getImageGenerationModels(localStorage.token).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 	};
@@ -107,11 +108,11 @@
 	const updateConfigHandler = async () => {
 		const res = await updateConfig(localStorage.token, config)
 			.catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			})
 			.catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			});
 
@@ -159,13 +160,13 @@
 		}
 
 		await updateConfig(localStorage.token, config).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			loading = false;
 			return null;
 		});
 
 		await updateImageGenerationConfig(localStorage.token, imageGenerationConfig).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			loading = false;
 			return null;
 		});
@@ -178,7 +179,7 @@
 	onMount(async () => {
 		if ($user.role === 'admin') {
 			const res = await getConfig(localStorage.token).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			});
 
@@ -201,7 +202,6 @@
 			requiredWorkflowNodes = requiredWorkflowNodes.map((node) => {
 				const n = config.comfyui.COMFYUI_WORKFLOW_NODES.find((n) => n.type === node.type) ?? node;
 
-				console.log(n);
 
 				return {
 					type: n.type,
@@ -211,7 +211,7 @@
 			});
 
 			const imageConfigRes = await getImageGenerationConfig(localStorage.token).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			});
 
@@ -309,7 +309,7 @@
 								on:click={async () => {
 									await updateConfigHandler();
 									const res = await verifyConfigUrl(localStorage.token).catch((error) => {
-										toast.error(error);
+										toast.error(normalizeErrorMessage(error));
 										return null;
 									});
 
@@ -445,7 +445,7 @@
 								on:click={async () => {
 									await updateConfigHandler();
 									const res = await verifyConfigUrl(localStorage.token).catch((error) => {
-										toast.error(error);
+										toast.error(normalizeErrorMessage(error));
 										return null;
 									});
 

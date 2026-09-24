@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { createEventDispatcher } from 'svelte';
 	import { onMount, getContext } from 'svelte';
 	import { addUser } from '$lib/apis/auths';
@@ -49,7 +50,7 @@
 				_user.password,
 				_user.role
 			).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 			});
 
 			if (res) {

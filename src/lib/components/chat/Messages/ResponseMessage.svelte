@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import dayjs from 'dayjs';
 
 	import { createEventDispatcher } from 'svelte';
@@ -225,7 +226,7 @@
 					sentence
 				).catch((error) => {
 					console.error(error);
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 
 					speaking = false;
 					loadingSpeech = false;
@@ -317,7 +318,7 @@
 	const generateImage = async (message: MessageType) => {
 		generatingImage = true;
 		const res = await imageGenerations(localStorage.token, message.content).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 		console.log(res);
 
@@ -352,7 +353,7 @@
 		};
 
 		const chat = await getChatById(localStorage.token, chatId).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 		if (!chat) {
 			return;
@@ -407,11 +408,11 @@
 				message.feedbackId,
 				feedbackItem
 			).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 			});
 		} else {
 			feedback = await createNewFeedback(localStorage.token, feedbackItem).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 			});
 
 			if (feedback) {
@@ -447,7 +448,7 @@
 						updatedMessage.feedbackId,
 						feedbackItem
 					).catch((error) => {
-						toast.error(error);
+						toast.error(normalizeErrorMessage(error));
 					});
 				}
 			}

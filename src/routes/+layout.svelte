@@ -30,6 +30,8 @@
 
 	import { getBackendConfig } from '$lib/apis';
 	import { getSessionUser } from '$lib/apis/auths';
+	import { reportError } from '$lib/telemetry';
+	import { ApiError, normalizeErrorMessage } from '$lib/apis/client';
 
 	import '../tailwind.css';
 	import '../app.css';
@@ -64,35 +66,26 @@
 		await socket.set(_socket);
 
 		_socket.on('connect_error', (err) => {
-			console.log('connect_error', err);
-		});
-
-		_socket.on('connect', () => {
-			console.log('connected', _socket.id);
+			console.error('connect_error', err);
 		});
 
 		_socket.on('reconnect_attempt', (attempt) => {
-			console.log('reconnect_attempt', attempt);
+			console.warn('reconnect_attempt', attempt);
 		});
 
 		_socket.on('reconnect_failed', () => {
-			console.log('reconnect_failed');
+			console.error('reconnect_failed');
 		});
 
 		_socket.on('disconnect', (reason, details) => {
-			console.log(`Socket ${_socket.id} disconnected due to ${reason}`);
-			if (details) {
-				console.log('Additional details:', details);
-			}
+			console.warn(`Socket ${_socket.id} disconnected due to ${reason}`, details ?? '');
 		});
 
 		_socket.on('user-list', (data) => {
-			console.log('user-list', data);
 			activeUserIds.set(data.user_ids);
 		});
 
 		_socket.on('usage', (data) => {
-			console.log('usage', data);
 			USAGE_POOL.set(data['models']);
 		});
 	};
@@ -211,10 +204,26 @@
 
 		window.addEventListener('resize', onResize);
 
+		const handleWindowError = (event) => {
+			reportError({
+				component: `window:${event.filename ?? ''}:${event.lineno ?? 0}:${event.colno ?? 0}`,
+				message: event.message
+			});
+		};
+		const handleUnhandledRejection = (event) => {
+			const err = event.reason;
+			reportError({
+				component: 'window',
+				status: err instanceof ApiError ? err.status : undefined,
+				message: err instanceof Error ? err.message : String(err)
+			});
+		};
+		window.addEventListener('error', handleWindowError);
+		window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
 		let backendConfig = null;
 		try {
 			backendConfig = await getBackendConfig();
-			console.log('Backend config:', backendConfig);
 		} catch (error) {
 			console.error('Error loading backend config:', error);
 		}
@@ -244,7 +253,7 @@
 				if (localStorage.token) {
 					// Get Session User Info
 					const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-						toast.error(error);
+						toast.error(normalizeErrorMessage(error));
 						return null;
 					});
 
@@ -309,6 +318,8 @@
 
 		return () => {
 			window.removeEventListener('resize', onResize);
+			window.removeEventListener('error', handleWindowError);
+			window.removeEventListener('unhandledrejection', handleUnhandledRejection);
 		};
 	});
 </script>

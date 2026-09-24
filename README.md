@@ -63,6 +63,14 @@ Don't forget to explore our sibling project, [Open WebUI Community](https://open
 
 ## How to Install 🚀
 
+### DGX Tailnet Access (Cimply Deployment)
+
+For the DGX tailnet deployment in this environment, use this browser URL:
+
+- `https://dgx-spark.taila99bf1.ts.net`
+
+This endpoint is tailnet-only (not public internet) and is the standard URL to use for browser access.
+
 ### Installation via Python pip 🐍
 
 Open WebUI can be installed using pip, the Python package installer. Before proceeding, ensure you're using **Python 3.11** to avoid compatibility issues.

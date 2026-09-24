@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { models, user } from '$lib/stores';
 	import { createEventDispatcher, onMount, getContext, tick } from 'svelte';
 
@@ -21,7 +22,7 @@
 
 	const submitHandler = async () => {
 		config = await updateConfig(localStorage.token, config).catch((err) => {
-			toast.error(err);
+			toast.error(normalizeErrorMessage(err));
 			return null;
 		});
 
@@ -59,7 +60,7 @@
 	onMount(async () => {
 		if ($user.role === 'admin') {
 			config = await getConfig(localStorage.token).catch((err) => {
-				toast.error(err);
+				toast.error(normalizeErrorMessage(err));
 				return null;
 			});
 		}

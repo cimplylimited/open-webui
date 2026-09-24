@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -61,7 +62,7 @@
 
 	const shareHandler = async (func) => {
 		const item = await getFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -83,12 +84,11 @@
 		};
 
 		window.addEventListener('message', messageHandler, false);
-		console.log(item);
 	};
 
 	const cloneHandler = async (func) => {
 		const _function = await getFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -104,7 +104,7 @@
 
 	const exportHandler = async (func) => {
 		const _function = await getFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -118,7 +118,7 @@
 
 	const deleteHandler = async (func) => {
 		const res = await deleteFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -132,7 +132,7 @@
 
 	const toggleGlobalHandler = async (func) => {
 		const res = await toggleGlobalById(localStorage.token, func.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		if (res) {
@@ -385,7 +385,6 @@
 			accept=".json"
 			hidden
 			on:change={() => {
-				console.log(importFiles);
 				showConfirm = true;
 			}}
 		/>
@@ -418,7 +417,7 @@
 			class="flex text-xs items-center space-x-1 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 transition"
 			on:click={async () => {
 				const _functions = await exportFunctions(localStorage.token).catch((error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					return null;
 				});
 
@@ -506,11 +505,10 @@
 		const reader = new FileReader();
 		reader.onload = async (event) => {
 			const _functions = JSON.parse(event.target.result);
-			console.log(_functions);
 
 			for (const func of _functions) {
 				const res = await createNewFunction(localStorage.token, func).catch((error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					return null;
 				});
 			}

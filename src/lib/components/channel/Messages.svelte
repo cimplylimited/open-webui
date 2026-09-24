@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
@@ -102,7 +103,7 @@
 
 					const res = deleteMessage(localStorage.token, message.channel_id, message.id).catch(
 						(error) => {
-							toast.error(error);
+							toast.error(normalizeErrorMessage(error));
 							return null;
 						}
 					);
@@ -118,7 +119,7 @@
 					const res = updateMessage(localStorage.token, message.channel_id, message.id, {
 						content: content
 					}).catch((error) => {
-						toast.error(error);
+						toast.error(normalizeErrorMessage(error));
 						return null;
 					});
 				}}
@@ -154,7 +155,7 @@
 							message.id,
 							name
 						).catch((error) => {
-							toast.error(error);
+							toast.error(normalizeErrorMessage(error));
 							return null;
 						});
 					} else {
@@ -180,7 +181,7 @@
 
 						const res = addReaction(localStorage.token, message.channel_id, message.id, name).catch(
 							(error) => {
-								toast.error(error);
+								toast.error(normalizeErrorMessage(error));
 								return null;
 							}
 						);

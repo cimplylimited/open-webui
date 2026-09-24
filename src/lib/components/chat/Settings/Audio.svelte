@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { createEventDispatcher, onMount, getContext } from 'svelte';
 
 	import { user, settings, config } from '$lib/stores';
@@ -39,7 +40,7 @@
 			}, 100);
 		} else {
 			const res = await _getVoices(localStorage.token).catch((e) => {
-				toast.error(e);
+				toast.error(normalizeErrorMessage(e));
 			});
 
 			if (res) {

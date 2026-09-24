@@ -1,6 +1,7 @@
 <script>
 	import { createEventDispatcher, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	import { updateMemoryById } from '$lib/apis/memories';
 
@@ -28,7 +29,7 @@
 		loading = true;
 
 		const res = await updateMemoryById(localStorage.token, memory.id, content).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 
 			return null;
 		});

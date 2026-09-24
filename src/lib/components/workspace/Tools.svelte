@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -61,7 +62,7 @@
 
 	const shareHandler = async (tool) => {
 		const item = await getToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -83,12 +84,11 @@
 		};
 
 		window.addEventListener('message', messageHandler, false);
-		console.log(item);
 	};
 
 	const cloneHandler = async (tool) => {
 		const _tool = await getToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -104,7 +104,7 @@
 
 	const exportHandler = async (tool) => {
 		const _tool = await getToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -118,7 +118,7 @@
 
 	const deleteHandler = async (tool) => {
 		const res = await deleteToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -369,7 +369,6 @@
 					accept=".json"
 					hidden
 					on:change={() => {
-						console.log(importFiles);
 						showConfirm = true;
 					}}
 				/>
@@ -402,7 +401,7 @@
 					class="flex text-xs items-center space-x-1 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 transition"
 					on:click={async () => {
 						const _tools = await exportTools(localStorage.token).catch((error) => {
-							toast.error(error);
+							toast.error(normalizeErrorMessage(error));
 							return null;
 						});
 
@@ -483,11 +482,10 @@
 			const reader = new FileReader();
 			reader.onload = async (event) => {
 				const _tools = JSON.parse(event.target.result);
-				console.log(_tools);
 
 				for (const tool of _tools) {
 					const res = await createNewTool(localStorage.token, tool).catch((error) => {
-						toast.error(error);
+						toast.error(normalizeErrorMessage(error));
 						return null;
 					});
 				}

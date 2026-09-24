@@ -16,6 +16,7 @@
 	import { onMount, getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	const i18n = getContext('i18n');
 
@@ -77,7 +78,7 @@
 	const archiveAllChatsHandler = async () => {
 		await goto('/');
 		await archiveAllChats(localStorage.token).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		currentChatPage.set(1);
@@ -88,7 +89,7 @@
 	const deleteAllChatsHandler = async () => {
 		await goto('/');
 		await deleteAllChats(localStorage.token).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		currentChatPage.set(1);

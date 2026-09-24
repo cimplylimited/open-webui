@@ -351,7 +351,10 @@
 	};
 
 	const saveMessage = async (messageId, message) => {
-		history.messages[messageId] = message;
+		history.messages[messageId] = {
+			...history.messages[messageId],
+			...message
+		};
 		await updateChat();
 	};
 

@@ -67,7 +67,14 @@ export async function apiFetch<T = unknown>(path: string, options: ApiFetchOptio
 		throw new ApiError(res.status, detail);
 	}
 
-	if (responseType === 'json') return res.json() as Promise<T>;
+	if (responseType === 'json') {
+		const parseStart = performance.now();
+		const parsed = await res.json();
+		if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug-chat-load')) {
+			console.info('[chat-load-timing] json-parse', { path, durationMs: performance.now() - parseStart });
+		}
+		return parsed as T;
+	}
 	if (responseType === 'blob') return res.blob() as unknown as T;
 	if (responseType === 'text') return res.text() as unknown as T;
 	return res as unknown as T;

@@ -134,6 +134,9 @@
 	$: if (autoScroll && bottomPadding) {
 		(async () => {
 			await tick();
+			if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug-chat-load')) {
+				console.info('[chat-load-timing] first-render', { messages: messages.length, totalMessages: Object.keys(history?.messages ?? {}).length });
+			}
 			scrollToBottom();
 		})();
 	}

@@ -887,6 +887,8 @@
 	};
 
 	const loadChat = async () => {
+		const debugChatLoad = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug-chat-load');
+		const conversionStart = performance.now();
 		chatId.set(chatIdProp);
 		chat = await getChatById(localStorage.token, $chatId).catch(async (error) => {
 			await goto('/');
@@ -905,10 +907,14 @@
 					(chatContent?.models ?? undefined) !== undefined
 						? chatContent.models
 						: [chatContent.models ?? ''];
+				const historyStart = performance.now();
 				history =
 					(chatContent?.history ?? undefined) !== undefined
 						? chatContent.history
 						: convertMessagesToHistory(chatContent.messages);
+				if (debugChatLoad) {
+					console.info('[chat-load-timing] history-conversion', { durationMs: performance.now() - historyStart, messages: Object.keys(history?.messages ?? {}).length });
+				}
 
 				chatTitle.set(chatContent.title);
 
@@ -925,6 +931,9 @@
 
 				autoScroll = true;
 				await tick();
+				if (debugChatLoad) {
+					console.info('[chat-load-timing] chat-ready', { durationMs: performance.now() - conversionStart });
+				}
 
 				if (history.currentId) {
 					history.messages[history.currentId].done = true;

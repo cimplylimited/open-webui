@@ -18,6 +18,7 @@
 		getOllamaModels
 	} from '$lib/apis/ollama';
 	import { getModels } from '$lib/apis';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -67,12 +68,11 @@
 
 	const updateModelsHandler = async () => {
 		for (const model of ollamaModels) {
-			console.log(model);
 
 			updateModelId = model.id;
 			const [res, controller] = await pullModel(localStorage.token, model.id, urlIdx).catch(
 				(error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					return null;
 				}
 			);
@@ -94,7 +94,6 @@
 							if (line !== '') {
 								let data = JSON.parse(line);
 
-								console.log(data);
 								if (data.error) {
 									throw data.error;
 								}
@@ -116,7 +115,7 @@
 							}
 						}
 					} catch (error) {
-						console.log(error);
+						console.error(error);
 					}
 				}
 			}
@@ -128,7 +127,6 @@
 
 	const pullModelHandler = async () => {
 		const sanitizedModelTag = modelTag.trim().replace(/^ollama\s+(run|pull)\s+/, '');
-		console.log($MODEL_DOWNLOAD_POOL);
 		if ($MODEL_DOWNLOAD_POOL[sanitizedModelTag]) {
 			toast.error(
 				$i18n.t(`Model '{{modelTag}}' is already in queue for downloading.`, {
@@ -146,7 +144,7 @@
 
 		const [res, controller] = await pullModel(localStorage.token, sanitizedModelTag, urlIdx).catch(
 			(error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			}
 		);
@@ -177,7 +175,6 @@
 					for (const line of lines) {
 						if (line !== '') {
 							let data = JSON.parse(line);
-							console.log(data);
 							if (data.error) {
 								throw data.error;
 							}
@@ -217,17 +214,16 @@
 						}
 					}
 				} catch (error) {
-					console.log(error);
+					console.error(error);
 					if (typeof error !== 'string') {
 						error = error.message;
 					}
 
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					// opts.callback({ success: false, error, modelName: opts.modelName });
 				}
 			}
 
-			console.log($MODEL_DOWNLOAD_POOL[sanitizedModelTag]);
 
 			if ($MODEL_DOWNLOAD_POOL[sanitizedModelTag].done) {
 				toast.success(
@@ -266,7 +262,7 @@
 				uploadMessage = 'Uploading...';
 
 				fileResponse = await uploadModel(localStorage.token, file, urlIdx).catch((error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					return null;
 				});
 			}
@@ -274,7 +270,7 @@
 			uploadProgress = 0;
 			fileResponse = await downloadModel(localStorage.token, modelFileUrl, urlIdx).catch(
 				(error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					return null;
 				}
 			);
@@ -316,7 +312,7 @@
 						}
 					}
 				} catch (error) {
-					console.log(error);
+					console.error(error);
 				}
 			}
 		} else {
@@ -346,9 +342,7 @@
 
 						for (const line of lines) {
 							if (line !== '') {
-								console.log(line);
 								let data = JSON.parse(line);
-								console.log(data);
 
 								if (data.error) {
 									throw data.error;
@@ -379,8 +373,8 @@
 							}
 						}
 					} catch (error) {
-						console.log(error);
-						toast.error(error);
+						console.error(error);
+						toast.error(normalizeErrorMessage(error));
 					}
 				}
 			}
@@ -400,7 +394,7 @@
 
 	const deleteModelHandler = async () => {
 		const res = await deleteModel(localStorage.token, deleteModelTag, urlIdx).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		if (res) {
@@ -435,7 +429,7 @@
 			createModelContent,
 			urlIdx
 		).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -454,9 +448,7 @@
 
 					for (const line of lines) {
 						if (line !== '') {
-							console.log(line);
 							let data = JSON.parse(line);
-							console.log(data);
 
 							if (data.error) {
 								throw data.error;
@@ -488,8 +480,8 @@
 						}
 					}
 				} catch (error) {
-					console.log(error);
-					toast.error(error);
+					console.error(error);
+					toast.error(normalizeErrorMessage(error));
 				}
 			}
 		}
@@ -508,7 +500,6 @@
 		loading = true;
 		ollamaModels = await getOllamaModels(localStorage.token, urlIdx);
 
-		console.log(ollamaModels);
 		loading = false;
 	};
 
@@ -893,7 +884,6 @@
 														type="file"
 														bind:files={modelInputFile}
 														on:change={() => {
-															console.log(modelInputFile);
 														}}
 														accept=".gguf,.safetensors"
 														required

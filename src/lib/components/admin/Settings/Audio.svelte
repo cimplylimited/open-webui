@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { createEventDispatcher, onMount, getContext } from 'svelte';
 	const dispatch = createEventDispatcher();
 
@@ -51,7 +52,7 @@
 			models = [];
 		} else {
 			const res = await _getModels(localStorage.token).catch((e) => {
-				toast.error(e);
+				toast.error(normalizeErrorMessage(e));
 			});
 
 			if (res) {
@@ -74,7 +75,7 @@
 			}, 100);
 		} else {
 			const res = await _getVoices(localStorage.token).catch((e) => {
-				toast.error(e);
+				toast.error(normalizeErrorMessage(e));
 			});
 
 			if (res) {

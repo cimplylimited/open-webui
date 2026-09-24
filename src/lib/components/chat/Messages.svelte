@@ -47,11 +47,13 @@
 
 	const DEFAULT_MESSAGES_COUNT = 20;
 	const LONG_CHAT_INITIAL_MESSAGES_COUNT = 8;
+	const LONG_CHAT_INITIAL_CHAR_BUDGET = 90000;
 	const LONG_CHAT_MESSAGE_THRESHOLD = 80;
 	const LONG_CHAT_CHAR_THRESHOLD = 250000;
 
 	let initializedMessagesCountForChatId = '';
 	let lastSeenChatId = '';
+	let firstRenderLoggedForChatId = '';
 
 	const getContentLength = (message) => {
 		const content = message?.merged?.content ?? message?.content;
@@ -65,7 +67,16 @@
 		}
 
 		if (historyMessages.length >= LONG_CHAT_MESSAGE_THRESHOLD) {
-			return LONG_CHAT_INITIAL_MESSAGES_COUNT;
+			let initialChars = 0;
+			let initialCount = 0;
+			for (const message of historyMessages.slice().reverse()) {
+				const nextChars = initialChars + getContentLength(message);
+				if (initialCount >= 2 && nextChars > LONG_CHAT_INITIAL_CHAR_BUDGET) break;
+				initialChars = nextChars;
+				initialCount += 1;
+				if (initialCount >= LONG_CHAT_INITIAL_MESSAGES_COUNT) break;
+			}
+			return Math.max(2, initialCount);
 		}
 
 		let totalChars = 0;
@@ -119,6 +130,15 @@
 		messages = _messages;
 	} else {
 		messages = [];
+	}
+
+	$: if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug-chat-load') && chatId && history.currentId && messages.length > 0 && firstRenderLoggedForChatId !== chatId) {
+		firstRenderLoggedForChatId = chatId;
+		(async () => {
+			const renderStart = performance.now();
+			await tick();
+			console.info('[chat-load-timing] first-render', { durationMs: performance.now() - renderStart, messages: messages.length, totalMessages: Object.keys(history?.messages ?? {}).length });
+		})();
 	}
 
 	$: if (autoScroll && bottomPadding) {
@@ -331,7 +351,10 @@
 	};
 
 	const saveMessage = async (messageId, message) => {
-		history.messages[messageId] = message;
+		history.messages[messageId] = {
+			...history.messages[messageId],
+			...message
+		};
 		await updateChat();
 	};
 

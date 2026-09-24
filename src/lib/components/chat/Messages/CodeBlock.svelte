@@ -241,7 +241,7 @@ __builtins__.input = input`);
 		};
 
 		pyodideWorker.onerror = (event) => {
-			console.log('pyodideWorker.onerror', event);
+			console.error('pyodideWorker.onerror', event);
 			executing = false;
 		};
 	};

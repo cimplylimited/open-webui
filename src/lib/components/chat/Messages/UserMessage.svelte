@@ -101,7 +101,12 @@
 	});
 </script>
 
-<div class=" flex w-full user-message" dir={$settings.chatDirection} id="message-{message.id}">
+<div
+	class=" flex w-full user-message"
+	class:opacity-60={message?.pending}
+	dir={$settings.chatDirection}
+	id="message-{message.id}"
+>
 	{#if !($settings?.chatBubble ?? true)}
 		<div class={`flex-shrink-0 ${($settings?.chatDirection ?? 'LTR') === 'LTR' ? 'mr-3' : 'ml-3'}`}>
 			<ProfileImage

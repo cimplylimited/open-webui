@@ -42,17 +42,17 @@ router = APIRouter()
 async def get_folders(user=Depends(get_verified_user)):
     folders = Folders.get_folders_by_user_id(user.id)
 
+    chats_by_folder = {folder.id: [] for folder in folders}
+    if folders:
+        for folder_id, chat_id, title in Chats.get_chat_titles_and_ids_by_folder_ids_and_user_id(
+            list(chats_by_folder), user.id
+        ):
+            chats_by_folder[folder_id].append({"title": title, "id": chat_id})
+
     return [
         {
             **folder.model_dump(),
-            "items": {
-                "chats": [
-                    {"title": chat.title, "id": chat.id}
-                    for chat in Chats.get_chats_by_folder_id_and_user_id(
-                        folder.id, user.id
-                    )
-                ]
-            },
+            "items": {"chats": chats_by_folder[folder.id]},
         }
         for folder in folders
     ]

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { createEventDispatcher } from 'svelte';
 	import { onMount, getContext } from 'svelte';
 	import { addUser } from '$lib/apis/auths';
@@ -44,11 +45,11 @@
 
 			if (type === 'tool') {
 				res = await updateToolValvesById(localStorage.token, id, valves).catch((error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 				});
 			} else if (type === 'function') {
 				res = await updateFunctionValvesById(localStorage.token, id, valves).catch((error) => {
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 				});
 			}
 

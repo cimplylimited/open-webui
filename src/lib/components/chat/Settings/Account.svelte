@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { onMount, getContext } from 'svelte';
 
 	import { user, config, settings } from '$lib/stores';
@@ -48,7 +49,7 @@
 
 		const updatedUser = await updateUserProfile(localStorage.token, name, profileImageUrl).catch(
 			(error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 			}
 		);
 

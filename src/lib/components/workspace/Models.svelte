@@ -2,6 +2,7 @@
 	import { marked } from 'marked';
 
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import Sortable from 'sortablejs';
 
 	import fileSaver from 'file-saver';
@@ -57,7 +58,7 @@
 
 	const deleteModelHandler = async (model) => {
 		const res = await deleteModelById(localStorage.token, model.id).catch((e) => {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 			return null;
 		});
 

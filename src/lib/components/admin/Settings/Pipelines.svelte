@@ -19,6 +19,7 @@
 	} from '$lib/apis';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import Switch from '$lib/components/common/Switch.svelte';
 
 	const i18n: Writable<i18nType> = getContext('i18n');
@@ -57,7 +58,7 @@
 				valves,
 				selectedPipelinesUrlIdx
 			).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 			});
 
 			if (res) {
@@ -99,7 +100,6 @@
 		valves_spec = null;
 
 		if (PIPELINES_LIST.length > 0) {
-			console.log(selectedPipelinesUrlIdx);
 			pipelines = await getPipelines(localStorage.token, selectedPipelinesUrlIdx);
 
 			if (pipelines.length > 0) {
@@ -118,7 +118,7 @@
 			pipelineDownloadUrl,
 			selectedPipelinesUrlIdx
 		).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -137,12 +137,11 @@
 		if (pipelineFiles && pipelineFiles.length !== 0) {
 			const file = pipelineFiles[0];
 
-			console.log(file);
 
 			const res = await uploadPipeline(localStorage.token, file, selectedPipelinesUrlIdx).catch(
 				(error) => {
-					console.log(error);
-					toast.error('Something went wrong :/');
+					console.error(error);
+					toast.error(normalizeErrorMessage(error));
 					return null;
 				}
 			);
@@ -172,7 +171,7 @@
 			pipelines[selectedPipelineIdx].id,
 			selectedPipelinesUrlIdx
 		).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -185,7 +184,6 @@
 
 	onMount(async () => {
 		PIPELINES_LIST = await getPipelinesList(localStorage.token);
-		console.log(PIPELINES_LIST);
 
 		if (PIPELINES_LIST.length > 0) {
 			selectedPipelinesUrlIdx = PIPELINES_LIST[0]['idx'].toString();

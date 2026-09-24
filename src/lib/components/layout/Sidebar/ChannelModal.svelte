@@ -7,6 +7,7 @@
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	const i18n = getContext('i18n');
@@ -52,7 +53,7 @@
 		showDeleteConfirmDialog = false;
 
 		const res = await deleteChannelById(localStorage.token, channel.id).catch((error) => {
-			toast.error(error.message);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		if (res) {

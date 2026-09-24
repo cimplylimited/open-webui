@@ -11,6 +11,7 @@
 
 	import Tooltip from '../common/Tooltip.svelte';
 	import RichTextInput from '../common/RichTextInput.svelte';
+	import LegacyEditorAdapter from '../common/LegacyEditorAdapter.svelte';
 	import VoiceRecording from '../chat/MessageInput/VoiceRecording.svelte';
 	import InputMenu from './MessageInput/InputMenu.svelte';
 	import { uploadFile } from '$lib/apis/files';
@@ -18,6 +19,7 @@
 	import FileItem from '../common/FileItem.svelte';
 	import Image from '../common/Image.svelte';
 	import { transcribeAudio } from '$lib/apis/audio';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import FilesOverlay from '../chat/MessageInput/FilesOverlay.svelte';
 
 	export let placeholder = $i18n.t('Send a Message');
@@ -80,21 +82,10 @@
 
 	const inputFilesHandler = async (inputFiles) => {
 		inputFiles.forEach((file) => {
-			console.log('Processing file:', {
-				name: file.name,
-				type: file.type,
-				size: file.size,
-				extension: file.name.split('.').at(-1)
-			});
-
 			if (
 				($config?.file?.max_size ?? null) !== null &&
 				file.size > ($config?.file?.max_size ?? 0) * 1024 * 1024
 			) {
-				console.log('File exceeds max size limit:', {
-					fileSize: file.size,
-					maxSize: ($config?.file?.max_size ?? 0) * 1024 * 1024
-				});
 				toast.error(
 					$i18n.t(`File size should not exceed {{maxSize}} MB.`, {
 						maxSize: $config?.file?.max_size
@@ -158,12 +149,11 @@
 		// Check if the file is an audio file and transcribe/convert it to text file
 		if (['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/x-m4a'].includes(file['type'])) {
 			const res = await transcribeAudio(localStorage.token, file).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			});
 
 			if (res) {
-				console.log(res);
 				const blob = new Blob([res.text], { type: 'text/plain' });
 				file = blobToFile(blob, `${file.name}.txt`);
 
@@ -177,12 +167,6 @@
 			const uploadedFile = await uploadFile(localStorage.token, file);
 
 			if (uploadedFile) {
-				console.log('File upload completed:', {
-					id: uploadedFile.id,
-					name: fileItem.name,
-					collection: uploadedFile?.meta?.collection_name
-				});
-
 				if (uploadedFile.error) {
 					console.warn('File upload warning:', uploadedFile.error);
 					toast.warning(uploadedFile.error);
@@ -200,14 +184,13 @@
 				files = files.filter((item) => item?.itemId !== tempItemId);
 			}
 		} catch (e) {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 			files = files.filter((item) => item?.itemId !== tempItemId);
 		}
 	};
 
 	const handleKeyDown = (event: KeyboardEvent) => {
 		if (event.key === 'Escape') {
-			console.log('Escape');
 			draggedOver = false;
 		}
 	};
@@ -229,12 +212,10 @@
 
 	const onDrop = async (e) => {
 		e.preventDefault();
-		console.log(e);
 
 		if (e.dataTransfer?.files) {
 			const inputFiles = Array.from(e.dataTransfer?.files);
 			if (inputFiles && inputFiles.length > 0) {
-				console.log(inputFiles);
 				inputFilesHandler(inputFiles);
 			}
 		}
@@ -284,7 +265,6 @@
 	});
 
 	onDestroy(() => {
-		console.log('destroy');
 		window.removeEventListener('keydown', handleKeyDown);
 
 		const dropzoneElement = document.getElementById('channel-container');
@@ -444,9 +424,7 @@
 												files.splice(fileIdx, 1);
 												files = files;
 											}}
-											on:click={() => {
-												console.log(file);
-											}}
+											on:click={() => {}}
 										/>
 									{/if}
 								{/each}
@@ -483,7 +461,10 @@
 							<div
 								class="scrollbar-hidden text-left bg-transparent dark:text-gray-100 outline-none w-full py-2.5 px-1 rounded-xl resize-none h-fit max-h-80 overflow-auto"
 							>
-								<RichTextInput
+								<svelte:component
+									this={$settings?.newMessageInput ?? true
+										? LegacyEditorAdapter
+										: RichTextInput}
 									bind:value={content}
 									id={`chat-input-${id}`}
 									messageInput={true}
@@ -517,14 +498,9 @@
 												submitHandler();
 											}
 										}
-
-										if (e.key === 'Escape') {
-											console.log('Escape');
-										}
 									}}
 									on:paste={async (e) => {
 										e = e.detail.event;
-										console.log(e);
 									}}
 								/>
 							</div>

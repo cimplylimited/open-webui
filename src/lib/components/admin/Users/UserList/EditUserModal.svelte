@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import dayjs from 'dayjs';
 	import { createEventDispatcher } from 'svelte';
 	import { onMount, getContext } from 'svelte';
@@ -24,7 +25,7 @@
 
 	const submitHandler = async () => {
 		const res = await updateUserById(localStorage.token, selectedUser.id, _user).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		if (res) {

@@ -19,6 +19,7 @@
 	} from '$lib/apis/retrieval';
 
 	import { knowledge, models } from '$lib/stores';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { getKnowledgeBases } from '$lib/apis/knowledge';
 	import { uploadDir, deleteAllFiles, deleteFileById } from '$lib/apis/files';
 
@@ -103,7 +104,6 @@
 			return;
 		}
 
-		console.log('Update embedding model attempt:', embeddingModel);
 
 		updateEmbeddingModelLoading = true;
 		const res = await updateEmbeddingConfig(localStorage.token, {
@@ -119,14 +119,13 @@
 				url: OpenAIUrl
 			}
 		}).catch(async (error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			await setEmbeddingConfig();
 			return null;
 		});
 		updateEmbeddingModelLoading = false;
 
 		if (res) {
-			console.log('embeddingModelUpdateHandler:', res);
 			if (res.status === true) {
 				toast.success($i18n.t('Embedding model set to "{{embedding_model}}"', res), {
 					duration: 1000 * 10
@@ -136,20 +135,18 @@
 	};
 
 	const rerankingModelUpdateHandler = async () => {
-		console.log('Update reranking model attempt:', rerankingModel);
 
 		updateRerankingModelLoading = true;
 		const res = await updateRerankingConfig(localStorage.token, {
 			reranking_model: rerankingModel
 		}).catch(async (error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			await setRerankingConfig();
 			return null;
 		});
 		updateRerankingModelLoading = false;
 
 		if (res) {
-			console.log('rerankingModelUpdateHandler:', res);
 			if (res.status === true) {
 				if (rerankingModel === '') {
 					toast.success($i18n.t('Reranking model disabled', res), {
@@ -258,7 +255,7 @@
 	bind:show={showResetUploadDirConfirm}
 	on:confirm={async () => {
 		const res = await deleteAllFiles(localStorage.token).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -272,7 +269,7 @@
 	bind:show={showResetConfirm}
 	on:confirm={() => {
 		const res = resetVectorDB(localStorage.token).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 

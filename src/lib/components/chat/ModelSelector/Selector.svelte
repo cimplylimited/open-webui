@@ -14,6 +14,7 @@
 
 	import { user, MODEL_DOWNLOAD_POOL, models, mobile, temporaryChatEnabled } from '$lib/stores';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { capitalizeFirstLetter, sanitizeResponseContent, splitStream } from '$lib/utils';
 	import { getModels } from '$lib/apis';
 
@@ -79,7 +80,6 @@
 	const pullModelHandler = async () => {
 		const sanitizedModelTag = searchValue.trim().replace(/^ollama\s+(run|pull)\s+/, '');
 
-		console.log($MODEL_DOWNLOAD_POOL);
 		if ($MODEL_DOWNLOAD_POOL[sanitizedModelTag]) {
 			toast.error(
 				$i18n.t(`Model '{{modelTag}}' is already in queue for downloading.`, {
@@ -97,7 +97,7 @@
 
 		const [res, controller] = await pullModel(localStorage.token, sanitizedModelTag, '0').catch(
 			(error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			}
 		);
@@ -128,7 +128,6 @@
 					for (const line of lines) {
 						if (line !== '') {
 							let data = JSON.parse(line);
-							console.log(data);
 							if (data.error) {
 								throw data.error;
 							}
@@ -168,12 +167,12 @@
 						}
 					}
 				} catch (error) {
-					console.log(error);
+					console.error(error);
 					if (typeof error !== 'string') {
 						error = error.message;
 					}
 
-					toast.error(error);
+					toast.error(normalizeErrorMessage(error));
 					// opts.callback({ success: false, error, modelName: opts.modelName });
 					break;
 				}

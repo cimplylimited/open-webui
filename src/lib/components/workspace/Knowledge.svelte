@@ -6,6 +6,7 @@
 	dayjs.extend(relativeTime);
 
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { onMount, getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
@@ -54,7 +55,7 @@
 
 	const deleteHandler = async (item) => {
 		const res = await deleteKnowledgeById(localStorage.token, item.id).catch((e) => {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 		});
 
 		if (res) {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -245,7 +246,7 @@
 									title: prompt.title,
 									content: prompt.content
 								}).catch((error) => {
-									toast.error(error);
+									toast.error(normalizeErrorMessage(error));
 									return null;
 								});
 							}

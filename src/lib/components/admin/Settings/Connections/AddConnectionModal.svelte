@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { getContext, onMount } from 'svelte';
 	const i18n = getContext('i18n');
 
@@ -37,7 +38,7 @@
 
 	const verifyOllamaHandler = async () => {
 		const res = await verifyOllamaConnection(localStorage.token, url, key).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		if (res) {
@@ -47,7 +48,7 @@
 
 	const verifyOpenAIHandler = async () => {
 		const res = await verifyOpenAIConnection(localStorage.token, url, key).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		if (res) {

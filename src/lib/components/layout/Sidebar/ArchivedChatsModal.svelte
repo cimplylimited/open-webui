@@ -2,6 +2,7 @@
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import dayjs from 'dayjs';
 	import { getContext, createEventDispatcher } from 'svelte';
 
@@ -28,7 +29,7 @@
 
 	const unarchiveChatHandler = async (chatId) => {
 		const res = await archiveChatById(localStorage.token, chatId).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		chats = await getArchivedChatList(localStorage.token);
@@ -37,7 +38,7 @@
 
 	const deleteChatHandler = async (chatId) => {
 		const res = await deleteChatById(localStorage.token, chatId).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		chats = await getArchivedChatList(localStorage.token);

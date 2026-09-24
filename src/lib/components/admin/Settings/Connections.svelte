@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { createEventDispatcher, onMount, getContext, tick } from 'svelte';
 
 	const dispatch = createEventDispatcher();
@@ -69,7 +70,7 @@
 				OPENAI_API_KEYS: OPENAI_API_KEYS,
 				OPENAI_API_CONFIGS: OPENAI_API_CONFIGS
 			}).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 			});
 
 			if (res) {
@@ -98,7 +99,7 @@
 				OLLAMA_BASE_URLS: OLLAMA_BASE_URLS,
 				OLLAMA_API_CONFIGS: OLLAMA_API_CONFIGS
 			}).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 			});
 
 			if (res) {

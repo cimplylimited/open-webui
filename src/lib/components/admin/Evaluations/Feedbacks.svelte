@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -56,7 +57,7 @@
 
 	const deleteFeedbackHandler = async (feedbackId: string) => {
 		const response = await deleteFeedbackById(localStorage.token, feedbackId).catch((err) => {
-			toast.error(err);
+			toast.error(normalizeErrorMessage(err));
 			return null;
 		});
 		if (response) {
@@ -93,7 +94,7 @@
 
 	const exportHandler = async () => {
 		const _feedbacks = await exportAllFeedbacks(localStorage.token).catch((err) => {
-			toast.error(err);
+			toast.error(normalizeErrorMessage(err));
 			return null;
 		});
 

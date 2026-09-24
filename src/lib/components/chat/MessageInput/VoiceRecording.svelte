@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { createEventDispatcher, tick, getContext, onMount, onDestroy } from 'svelte';
 	import { config, settings } from '$lib/stores';
 	import { blobToFile, calculateSHA256, findWordIndices } from '$lib/utils';
@@ -137,7 +138,7 @@
 		const file = blobToFile(audioBlob, 'recording.wav');
 
 		const res = await transcribeAudio(localStorage.token, file).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 

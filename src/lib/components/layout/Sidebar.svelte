@@ -40,6 +40,7 @@
 	} from '$lib/apis/chats';
 	import { createNewFolder, getFolders, updateFolderParentIdById } from '$lib/apis/folders';
 	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	import ArchivedChatsModal from './Sidebar/ArchivedChatsModal.svelte';
 	import UserMenu from './Sidebar/UserMenu.svelte';
@@ -59,6 +60,40 @@
 
 	const BREAKPOINT = 768;
 
+	const SIDEBAR_MIN_WIDTH = 240;
+	const SIDEBAR_MAX_WIDTH = 650;
+	const SIDEBAR_DEFAULT_WIDTH = 260;
+
+	let sidebarWidth = SIDEBAR_DEFAULT_WIDTH;
+	let resizingSidebar = false;
+
+	const applySidebarWidth = (width) => {
+		sidebarWidth = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
+		document.documentElement.style.setProperty('--sidebar-width', `${sidebarWidth}px`);
+	};
+
+	const stopSidebarResize = () => {
+		if (!resizingSidebar) return;
+		resizingSidebar = false;
+		localStorage.sidebarWidth = `${sidebarWidth}`;
+		document.body.style.cursor = '';
+		document.body.style.userSelect = '';
+		window.removeEventListener('pointermove', resizeSidebar);
+		window.removeEventListener('pointerup', stopSidebarResize);
+	};
+
+	const resizeSidebar = (event) => applySidebarWidth(event.clientX);
+
+	const startSidebarResize = (event) => {
+		if ($mobile) return;
+		event.preventDefault();
+		resizingSidebar = true;
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+		window.addEventListener('pointermove', resizeSidebar);
+		window.addEventListener('pointerup', stopSidebarResize);
+	};
+
 	let navElement;
 	let search = '';
 
@@ -76,27 +111,9 @@
 
 	let folders = {};
 
-	const getErrorMessage = (error: unknown, fallback = 'Failed to load data.') => {
-		if (typeof error === 'string' && error.trim().length > 0) {
-			return error;
-		}
-
-		if (typeof error === 'object' && error !== null) {
-			if ('detail' in error && typeof error.detail === 'string' && error.detail.trim().length > 0) {
-				return error.detail;
-			}
-
-			if ('message' in error && typeof error.message === 'string' && error.message.trim().length > 0) {
-				return error.message;
-			}
-		}
-
-		return fallback;
-	};
-
 	const initFolders = async () => {
 		const folderList = await getFolders(localStorage.token).catch((error) => {
-			toast.error(getErrorMessage(error, 'Failed to load folders.'));
+			toast.error(normalizeErrorMessage(error));
 			return [];
 		});
 
@@ -165,7 +182,7 @@
 		};
 
 		const res = await createNewFolder(localStorage.token, name).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -196,15 +213,15 @@
 		}
 
 		if (tagsResult.status === 'rejected') {
-			toast.error(getErrorMessage(tagsResult.reason, 'Failed to load tags.'));
+			toast.error(normalizeErrorMessage(tagsResult.reason));
 		}
 
 		if (pinnedResult.status === 'rejected') {
-			toast.error(getErrorMessage(pinnedResult.reason, 'Failed to load pinned chats.'));
+			toast.error(normalizeErrorMessage(pinnedResult.reason));
 		}
 
 		if (foldersResult.status === 'rejected') {
-			toast.error(getErrorMessage(foldersResult.reason, 'Failed to load folders.'));
+			toast.error(normalizeErrorMessage(foldersResult.reason));
 		}
 
 		try {
@@ -214,7 +231,7 @@
 				await chats.set(await getChatList(localStorage.token, 1));
 			}
 		} catch (error) {
-			toast.error(getErrorMessage(error, 'Failed to load chats.'));
+			toast.error(normalizeErrorMessage(error));
 			await chats.set([]);
 			allChatsLoaded = true;
 		}
@@ -237,7 +254,7 @@
 				newChatList = await getChatList(localStorage.token, $currentChatPage);
 			}
 		} catch (error) {
-			toast.error(getErrorMessage(error, 'Failed to load more chats.'));
+			toast.error(normalizeErrorMessage(error));
 			newChatList = [];
 		}
 
@@ -251,7 +268,6 @@
 	let searchDebounceTimeout;
 
 	const searchDebounceHandler = async () => {
-		console.log('search', search);
 		chats.set(null);
 
 		if (searchDebounceTimeout) {
@@ -269,7 +285,7 @@
 				try {
 					await chats.set(await getChatListBySearchText(localStorage.token, search));
 				} catch (error) {
-					toast.error(getErrorMessage(error, 'Failed to search chats.'));
+					toast.error(normalizeErrorMessage(error));
 					await chats.set([]);
 					allChatsLoaded = true;
 					return;
@@ -279,7 +295,7 @@
 					try {
 						tags.set(await getAllTags(localStorage.token));
 					} catch (error) {
-						toast.error(getErrorMessage(error, 'Failed to load tags.'));
+						toast.error(normalizeErrorMessage(error));
 						tags.set([]);
 					}
 				}
@@ -288,9 +304,7 @@
 	};
 
 	const importChatHandler = async (items, pinned = false, folderId = null) => {
-		console.log('importChatHandler', items, pinned, folderId);
 		for (const item of items) {
-			console.log(item);
 			if (item.chat) {
 				await importChat(localStorage.token, item.chat, item?.meta ?? {}, pinned, folderId);
 			}
@@ -300,8 +314,6 @@
 	};
 
 	const inputFilesHandler = async (files) => {
-		console.log(files);
-
 		for (const file of files) {
 			const reader = new FileReader();
 			reader.onload = async (e) => {
@@ -320,7 +332,6 @@
 	};
 
 	const tagEventHandler = async (type, tagName, chatId) => {
-		console.log(type, tagName, chatId);
 		if (type === 'delete') {
 			initChatList();
 		} else if (type === 'add') {
@@ -347,15 +358,12 @@
 
 	const onDrop = async (e) => {
 		e.preventDefault();
-		console.log(e); // Log the drop event
 
-		// Perform file drop check and handle it accordingly
 		if (e.dataTransfer?.files) {
 			const inputFiles = Array.from(e.dataTransfer?.files);
 
 			if (inputFiles && inputFiles.length > 0) {
-				console.log(inputFiles); // Log the dropped files
-				inputFilesHandler(inputFiles); // Handle the dropped files
+				inputFilesHandler(inputFiles);
 			}
 		}
 
@@ -380,7 +388,6 @@
 
 	const onTouchStart = (e) => {
 		touchstart = e.changedTouches[0];
-		console.log(touchstart.clientX);
 	};
 
 	const onTouchEnd = (e) => {
@@ -409,6 +416,9 @@
 
 	onMount(async () => {
 		showPinnedChat = localStorage?.showPinnedChat ? localStorage.showPinnedChat === 'true' : true;
+		applySidebarWidth(
+			Number.parseInt(localStorage.sidebarWidth ?? '', 10) || SIDEBAR_DEFAULT_WIDTH
+		);
 
 		mobile.subscribe((e) => {
 			if ($showSidebar && e) {
@@ -445,6 +455,7 @@
 	});
 
 	onDestroy(() => {
+		stopSidebarResize();
 		window.removeEventListener('keydown', onKeyDown);
 		window.removeEventListener('keyup', onKeyUp);
 
@@ -476,7 +487,7 @@
 			name: name,
 			access_control: access_control
 		}).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -502,14 +513,13 @@
 <div
 	bind:this={navElement}
 	id="sidebar"
-	class="h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
-		? 'md:relative w-[260px] max-w-[260px]'
-		: '-translate-x-[260px] w-[0px]'} bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-200 text-sm transition fixed z-50 top-0 left-0 overflow-x-hidden
-        "
+	class="sidebar-shell h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
+		? 'md:relative'
+		: ''} bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-200 text-sm transition fixed z-50 top-0 left-0 overflow-x-hidden"
 	data-state={$showSidebar}
 >
 	<div
-		class="py-2 my-auto flex flex-col justify-between h-screen max-h-[100dvh] w-[260px] overflow-x-hidden z-50 {$showSidebar
+		class="sidebar-inner py-2 my-auto flex flex-col justify-between h-screen max-h-[100dvh] overflow-x-hidden z-50 {$showSidebar
 			? ''
 			: 'invisible'}"
 	>
@@ -677,11 +687,10 @@
 						}
 
 						if (chat) {
-							console.log(chat);
 							if (chat.folder_id) {
 								const res = await updateChatFolderIdById(localStorage.token, chat.id, null).catch(
 									(error) => {
-										toast.error(error);
+										toast.error(normalizeErrorMessage(error));
 										return null;
 									}
 								);
@@ -700,7 +709,7 @@
 
 						const res = await updateFolderParentIdById(localStorage.token, id, null).catch(
 							(error) => {
-								toast.error(error);
+								toast.error(normalizeErrorMessage(error));
 								return null;
 							}
 						);
@@ -722,7 +731,6 @@
 							bind:open={showPinnedChat}
 							on:change={(e) => {
 								localStorage.setItem('showPinnedChat', e.detail);
-								console.log(e.detail);
 							}}
 							on:import={(e) => {
 								importChatHandler(e.detail, true);
@@ -739,14 +747,13 @@
 									}
 
 									if (chat) {
-										console.log(chat);
 										if (chat.folder_id) {
 											const res = await updateChatFolderIdById(
 												localStorage.token,
 												chat.id,
 												null
 											).catch((error) => {
-												toast.error(error);
+												toast.error(normalizeErrorMessage(error));
 												return null;
 											});
 										}
@@ -920,9 +927,63 @@
 			</div>
 		</div>
 	</div>
+	{#if $showSidebar}
+		<button
+			type="button"
+			aria-label="Resize sidebar"
+			class="sidebar-resize-handle hidden md:block"
+			on:pointerdown={startSidebarResize}
+		/>
+	{/if}
 </div>
 
 <style>
+	.sidebar-shell {
+		width: 0;
+		max-width: 0;
+		transform: translateX(-260px);
+	}
+	.sidebar-shell[data-state='true'] {
+		width: 260px;
+		max-width: 260px;
+		transform: translateX(0);
+	}
+	.sidebar-inner {
+		width: 260px;
+	}
+	.sidebar-resize-handle {
+		position: absolute;
+		top: 0;
+		right: -3px;
+		z-index: 60;
+		width: 7px;
+		height: 100%;
+		cursor: col-resize;
+		background: transparent;
+	}
+	.sidebar-resize-handle:hover,
+	.sidebar-resize-handle:active {
+		background: rgb(156 163 175 / 0.35);
+	}
+	@media (min-width: 768px) {
+		.sidebar-shell[data-state='true'] {
+			width: var(--sidebar-width, 260px);
+			max-width: var(--sidebar-width, 260px);
+		}
+		.sidebar-shell:not([data-state='true']) {
+			transform: translateX(calc(-1 * var(--sidebar-width, 260px)));
+		}
+		.sidebar-inner {
+			width: var(--sidebar-width, 260px);
+		}
+		:global(.sidebar-aware-content[data-sidebar-open='true']) {
+			max-width: calc(100% - var(--sidebar-width, 260px));
+		}
+		:global(.sidebar-aware-background[data-sidebar-open='true']) {
+			max-width: calc(100% - var(--sidebar-width, 260px));
+			transform: translateX(var(--sidebar-width, 260px));
+		}
+	}
 	.scrollbar-hidden:active::-webkit-scrollbar-thumb,
 	.scrollbar-hidden:focus::-webkit-scrollbar-thumb,
 	.scrollbar-hidden:hover::-webkit-scrollbar-thumb {

@@ -9,6 +9,7 @@
 	dayjs.extend(relativeTime);
 
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	import { updateUserRole, getUsers, deleteUserById } from '$lib/apis/users';
 
@@ -44,7 +45,7 @@
 
 	const updateRoleHandler = async (id, role) => {
 		const res = await updateUserRole(localStorage.token, id, role).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -55,7 +56,7 @@
 
 	const deleteUserHandler = async (id) => {
 		const res = await deleteUserById(localStorage.token, id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 		if (res) {

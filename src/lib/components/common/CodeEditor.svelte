@@ -15,6 +15,7 @@
 
 	import { formatPythonCode } from '$lib/apis/utils';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	const dispatch = createEventDispatcher();
 	const i18n = getContext('i18n');
@@ -64,7 +65,7 @@
 	export const formatPythonCodeHandler = async () => {
 		if (codeEditor) {
 			const res = await formatPythonCode(_value).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			});
 

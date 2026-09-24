@@ -1,5 +1,6 @@
 <script>
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { getContext } from 'svelte';
 
 	const i18n = getContext('i18n');
@@ -23,7 +24,7 @@
 
 	const updateHandler = async (_group) => {
 		const res = await updateGroupById(localStorage.token, group.id, _group).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -35,7 +36,7 @@
 
 	const deleteHandler = async () => {
 		const res = await deleteGroupById(localStorage.token, group.id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 

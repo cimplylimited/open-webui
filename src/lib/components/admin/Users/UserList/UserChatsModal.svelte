@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import dayjs from 'dayjs';
 	import { getContext, createEventDispatcher } from 'svelte';
 
@@ -20,7 +21,7 @@
 
 	const deleteChatHandler = async (chatId) => {
 		const res = await deleteChatById(localStorage.token, chatId).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 		});
 
 		chats = await getChatListByUserId(localStorage.token, user.id);

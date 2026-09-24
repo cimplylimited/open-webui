@@ -25,6 +25,7 @@
 	import { transcribeAudio } from '$lib/apis/audio';
 	import { blobToFile } from '$lib/utils';
 	import { processFile } from '$lib/apis/retrieval';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Files from './KnowledgeBase/Files.svelte';
@@ -105,14 +106,10 @@
 	const createFileFromText = (name, content) => {
 		const blob = new Blob([content], { type: 'text/plain' });
 		const file = blobToFile(blob, `${name}.txt`);
-
-		console.log(file);
 		return file;
 	};
 
 	const uploadFileHandler = async (file) => {
-		console.log(file);
-
 		const tempItemId = uuidv4();
 		const fileItem = {
 			type: 'file',
@@ -136,12 +133,11 @@
 		// Check if the file is an audio file and transcribe/convert it to text file
 		if (['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/x-m4a'].includes(file['type'])) {
 			const res = await transcribeAudio(localStorage.token, file).catch((error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			});
 
 			if (res) {
-				console.log(res);
 				const blob = new Blob([res.text], { type: 'text/plain' });
 				file = blobToFile(blob, `${file.name}.txt`);
 			}
@@ -149,12 +145,11 @@
 
 		try {
 			const uploadedFile = await uploadFile(localStorage.token, file).catch((e) => {
-				toast.error(e);
+				toast.error(normalizeErrorMessage(e));
 				return null;
 			});
 
 			if (uploadedFile) {
-				console.log(uploadedFile);
 				knowledge.files = knowledge.files.map((item) => {
 					if (item.itemId === tempItemId) {
 						item.id = uploadedFile.id;
@@ -169,7 +164,7 @@
 				toast.error($i18n.t('Failed to upload file.'));
 			}
 		} catch (e) {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 		}
 	};
 
@@ -256,8 +251,6 @@
 
 		if (totalFiles > 0) {
 			await processDirectory(dirHandle);
-		} else {
-			console.log('No files to upload.');
 		}
 	};
 
@@ -339,7 +332,7 @@
 	const syncDirectoryHandler = async () => {
 		if ((knowledge?.files ?? []).length > 0) {
 			const res = await resetKnowledgeById(localStorage.token, id).catch((e) => {
-				toast.error(e);
+				toast.error(normalizeErrorMessage(e));
 			});
 
 			if (res) {
@@ -357,7 +350,7 @@
 	const addFileHandler = async (fileId) => {
 		const updatedKnowledge = await addFileToKnowledgeById(localStorage.token, id, fileId).catch(
 			(e) => {
-				toast.error(e);
+				toast.error(normalizeErrorMessage(e));
 				return null;
 			}
 		);
@@ -377,7 +370,7 @@
 			id,
 			fileId
 		).catch((e) => {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 		});
 
 		if (updatedKnowledge) {
@@ -391,7 +384,7 @@
 		const content = selectedFile.data.content;
 
 		const res = updateFileDataContentById(localStorage.token, fileId, content).catch((e) => {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 		});
 
 		const updatedKnowledge = await updateFileFromKnowledgeById(
@@ -399,7 +392,7 @@
 			id,
 			fileId
 		).catch((e) => {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 		});
 
 		if (res && updatedKnowledge) {
@@ -409,7 +402,6 @@
 	};
 
 	const changeDebounceHandler = () => {
-		console.log('debounce');
 		if (debounceTimeout) {
 			clearTimeout(debounceTimeout);
 		}
@@ -426,7 +418,7 @@
 				description: knowledge.description,
 				access_control: knowledge.access_control
 			}).catch((e) => {
-				toast.error(e);
+				toast.error(normalizeErrorMessage(e));
 			});
 
 			if (res) {
@@ -518,7 +510,7 @@
 		id = $page.params.id;
 
 		const res = await getKnowledgeById(localStorage.token, id).catch((e) => {
-			toast.error(e);
+			toast.error(normalizeErrorMessage(e));
 			return null;
 		});
 
@@ -847,8 +839,6 @@
 										selectedFileId = selectedFileId === e.detail ? null : e.detail;
 									}}
 									on:delete={(e) => {
-										console.log(e.detail);
-
 										selectedFileId = null;
 										deleteFileHandler(e.detail);
 									}}

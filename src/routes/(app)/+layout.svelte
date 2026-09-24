@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { onMount, tick, getContext } from 'svelte';
+	import { onMount, onDestroy, tick, getContext } from 'svelte';
 	import { openDB, deleteDB } from 'idb';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
@@ -52,6 +52,34 @@
 
 	let version;
 
+	// Visibility-change refresh guards (plan §2.5)
+	let storeRefreshingAt = 0;    // epoch ms when the current inflight refresh started (0 = idle)
+	let storeLastRefreshedAt = 0; // epoch ms of last successful refresh
+	let storeLastErrorAt = 0;     // epoch ms of last failed refresh (backoff)
+
+	const refreshCapabilityStores = async () => {
+		if (document.visibilityState !== 'visible') return;
+		if (storeRefreshingAt !== 0) return;          // in-flight dedup
+		const now = Date.now();
+		if (now - storeLastRefreshedAt < 60_000) return;  // 60s TTL
+		if (now - storeLastErrorAt < 60_000) return;      // backoff on error
+
+		storeRefreshingAt = now;
+		try {
+			models.set(await getModels(localStorage.token));
+			tools.set(await getTools(localStorage.token));
+			storeLastRefreshedAt = Date.now();
+		} catch {
+			storeLastErrorAt = Date.now();
+		} finally {
+			storeRefreshingAt = 0;
+		}
+	};
+
+	onDestroy(() => {
+		document.removeEventListener('visibilitychange', refreshCapabilityStores);
+	});
+
 	onMount(async () => {
 		if ($user === undefined) {
 			await goto('/auth');
@@ -96,6 +124,9 @@
 			models.set(await getModels(localStorage.token));
 			banners.set(await getBanners(localStorage.token));
 			tools.set(await getTools(localStorage.token));
+			storeLastRefreshedAt = Date.now();
+
+			document.addEventListener('visibilitychange', refreshCapabilityStores);
 
 			document.addEventListener('keydown', async function (event) {
 				const isCtrlPressed = event.ctrlKey || event.metaKey; // metaKey is for Cmd key on Mac

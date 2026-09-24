@@ -4,6 +4,7 @@
 	import Modal from '$lib/components/common/Modal.svelte';
 	import { addNewMemory, updateMemoryById } from '$lib/apis/memories';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 
 	const dispatch = createEventDispatcher();
 
@@ -17,7 +18,7 @@
 		loading = true;
 
 		const res = await addNewMemory(localStorage.token, content).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 
 			return null;
 		});

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { onMount, getContext, createEventDispatcher, tick, onDestroy } from 'svelte';
 	const i18n = getContext('i18n');
@@ -11,7 +12,6 @@
 		cloneChatById,
 		deleteChatById,
 		getAllTags,
-		getChatById,
 		getChatList,
 		getChatListByTagName,
 		getPinnedChatList,
@@ -47,21 +47,8 @@
 	export let selected = false;
 	export let shiftKey = false;
 
-	let chat = null;
-
 	let mouseOver = false;
-	let draggable = false;
-	$: if (mouseOver) {
-		loadChat();
-	}
-
-	const loadChat = async () => {
-		if (!chat) {
-			draggable = false;
-			chat = await getChatById(localStorage.token, id);
-			draggable = true;
-		}
-	};
+	let draggable = true;
 
 	let showShareChatModal = false;
 	let confirmEdit = false;
@@ -88,7 +75,7 @@
 
 	const cloneChatHandler = async (id) => {
 		const res = await cloneChatById(localStorage.token, id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -103,7 +90,7 @@
 
 	const deleteChatHandler = async (id) => {
 		const res = await deleteChatById(localStorage.token, id).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -149,8 +136,7 @@
 			'text/plain',
 			JSON.stringify({
 				type: 'chat',
-				id: id,
-				item: chat
+				id: id
 			})
 		);
 

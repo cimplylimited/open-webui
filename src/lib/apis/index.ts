@@ -1,31 +1,8 @@
-import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+import { apiFetch } from '$lib/apis/client';
 
 export const getModels = async (token: string = '', base: boolean = false) => {
-	let error = null;
-	const res = await fetch(`${WEBUI_BASE_URL}/api/models${base ? '/base' : ''}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err;
-			console.log(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	let models = res?.data ?? [];
-	return models;
+	const res = await apiFetch<{ data: any[] }>(`/api/models${base ? '/base' : ''}`, { token });
+	return res?.data ?? [];
 };
 
 type ChatCompletedForm = {
@@ -36,36 +13,11 @@ type ChatCompletedForm = {
 };
 
 export const chatCompleted = async (token: string, body: ChatCompletedForm) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/chat/completed`, {
+	return await apiFetch('/api/chat/completed', {
 		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		},
-		body: JSON.stringify(body)
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify(body),
+		token
+	});
 };
 
 type ChatActionForm = {
@@ -75,129 +27,27 @@ type ChatActionForm = {
 };
 
 export const chatAction = async (token: string, action_id: string, body: ChatActionForm) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/chat/actions/${action_id}`, {
+	return await apiFetch(`/api/chat/actions/${action_id}`, {
 		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		},
-		body: JSON.stringify(body)
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify(body),
+		token
+	});
 };
 
 export const stopTask = async (token: string, id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/tasks/stop/${id}`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch(`/api/tasks/stop/${id}`, { method: 'POST', token });
 };
 
 export const getTaskConfig = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/config`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/v1/tasks/config', { token });
 };
 
 export const updateTaskConfig = async (token: string, config: object) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/config/update`, {
+	return await apiFetch('/api/v1/tasks/config/update', {
 		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		},
-		body: JSON.stringify(config)
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify(config),
+		token
+	});
 };
 
 export const generateTitle = async (
@@ -206,37 +56,14 @@ export const generateTitle = async (
 	messages: string[],
 	chat_id?: string
 ) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/title/completions`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			model: model,
-			messages: messages,
-			...(chat_id && { chat_id: chat_id })
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
+	const res = await apiFetch<{ choices: { message: { content: string } }[] }>(
+		'/api/v1/tasks/title/completions',
+		{
+			method: 'POST',
+			body: JSON.stringify({ model, messages, ...(chat_id && { chat_id }) }),
+			token
+		}
+	);
 	return res?.choices[0]?.message?.content.replace(/["']/g, '') ?? 'New Chat';
 };
 
@@ -246,67 +73,29 @@ export const generateTags = async (
 	messages: string,
 	chat_id?: string
 ) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/tags/completions`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			model: model,
-			messages: messages,
-			...(chat_id && { chat_id: chat_id })
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+	const res = await apiFetch<{ choices: { message: { content: string } }[] }>(
+		'/api/v1/tasks/tags/completions',
+		{
+			method: 'POST',
+			body: JSON.stringify({ model, messages, ...(chat_id && { chat_id }) }),
+			token
+		}
+	);
 
 	try {
-		// Step 1: Safely extract the response string
 		const response = res?.choices[0]?.message?.content ?? '';
-
-		// Step 2: Attempt to fix common JSON format issues like single quotes
-		const sanitizedResponse = response.replace(/['‘’`]/g, '"'); // Convert single quotes to double quotes for valid JSON
-
-		// Step 3: Find the relevant JSON block within the response
+		const sanitizedResponse = response.replace(/['''`]/g, '"');
 		const jsonStartIndex = sanitizedResponse.indexOf('{');
 		const jsonEndIndex = sanitizedResponse.lastIndexOf('}');
 
-		// Step 4: Check if we found a valid JSON block (with both `{` and `}`)
 		if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
-			const jsonResponse = sanitizedResponse.substring(jsonStartIndex, jsonEndIndex + 1);
-
-			// Step 5: Parse the JSON block
-			const parsed = JSON.parse(jsonResponse);
-
-			// Step 6: If there's a "tags" key, return the tags array; otherwise, return an empty array
+			const parsed = JSON.parse(sanitizedResponse.substring(jsonStartIndex, jsonEndIndex + 1));
 			if (parsed && parsed.tags) {
 				return Array.isArray(parsed.tags) ? parsed.tags : [];
-			} else {
-				return [];
 			}
 		}
-
-		// If no valid JSON block found, return an empty array
 		return [];
 	} catch (e) {
-		// Catch and safely return empty array on any parsing errors
 		console.error('Failed to parse response: ', e);
 		return [];
 	}
@@ -318,45 +107,19 @@ export const generateEmoji = async (
 	prompt: string,
 	chat_id?: string
 ) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/emoji/completions`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			model: model,
-			prompt: prompt,
-			...(chat_id && { chat_id: chat_id })
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+	const res = await apiFetch<{ choices: { message: { content: string } }[] }>(
+		'/api/v1/tasks/emoji/completions',
+		{
+			method: 'POST',
+			body: JSON.stringify({ model, prompt, ...(chat_id && { chat_id }) }),
+			token
+		}
+	);
 
 	const response = res?.choices[0]?.message?.content.replace(/["']/g, '') ?? null;
-
-	if (response) {
-		if (/\p{Extended_Pictographic}/u.test(response)) {
-			return response.match(/\p{Extended_Pictographic}/gu)[0];
-		}
+	if (response && /\p{Extended_Pictographic}/u.test(response)) {
+		return response.match(/\p{Extended_Pictographic}/gu)?.[0] ?? null;
 	}
-
 	return null;
 };
 
@@ -365,65 +128,29 @@ export const generateQueries = async (
 	model: string,
 	messages: object[],
 	prompt: string,
-	type?: string = 'web_search'
+	type: string = 'web_search'
 ) => {
-	let error = null;
+	const res = await apiFetch<{ choices: { message: { content: string } }[] }>(
+		'/api/v1/tasks/queries/completions',
+		{
+			method: 'POST',
+			body: JSON.stringify({ model, messages, prompt, type }),
+			token
+		}
+	);
 
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/queries/completions`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			model: model,
-			messages: messages,
-			prompt: prompt,
-			type: type
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	// Step 1: Safely extract the response string
 	const response = res?.choices[0]?.message?.content ?? '';
-
 	try {
 		const jsonStartIndex = response.indexOf('{');
 		const jsonEndIndex = response.lastIndexOf('}');
-
 		if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
-			const jsonResponse = response.substring(jsonStartIndex, jsonEndIndex + 1);
-
-			// Step 5: Parse the JSON block
-			const parsed = JSON.parse(jsonResponse);
-
-			// Step 6: If there's a "queries" key, return the queries array; otherwise, return an empty array
+			const parsed = JSON.parse(response.substring(jsonStartIndex, jsonEndIndex + 1));
 			if (parsed && parsed.queries) {
 				return Array.isArray(parsed.queries) ? parsed.queries : [];
-			} else {
-				return [];
 			}
 		}
-
-		// If no valid JSON block found, return response as is
 		return [response];
 	} catch (e) {
-		// Catch and safely return empty array on any parsing errors
 		console.error('Failed to parse response: ', e);
 		return [response];
 	}
@@ -434,67 +161,31 @@ export const generateAutoCompletion = async (
 	model: string,
 	prompt: string,
 	messages?: object[],
-	type: string = 'search query'
+	type: string = 'search query',
+	signal?: AbortSignal
 ) => {
-	const controller = new AbortController();
-	let error = null;
+	const res = await apiFetch<{ choices: { message: { content: string } }[] }>(
+		'/api/v1/tasks/auto/completions',
+		{
+			method: 'POST',
+			body: JSON.stringify({ model, prompt, ...(messages && { messages }), type, stream: false }),
+			token,
+			signal
+		}
+	).catch(() => null);
 
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/auto/completions`, {
-		signal: controller.signal,
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			model: model,
-			prompt: prompt,
-			...(messages && { messages: messages }),
-			type: type,
-			stream: false
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+	if (!res) return '';
 
 	const response = res?.choices[0]?.message?.content ?? '';
-
 	try {
 		const jsonStartIndex = response.indexOf('{');
 		const jsonEndIndex = response.lastIndexOf('}');
-
 		if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
-			const jsonResponse = response.substring(jsonStartIndex, jsonEndIndex + 1);
-
-			// Step 5: Parse the JSON block
-			const parsed = JSON.parse(jsonResponse);
-
-			// Step 6: If there's a "queries" key, return the queries array; otherwise, return an empty array
-			if (parsed && parsed.text) {
-				return parsed.text;
-			} else {
-				return '';
-			}
+			const parsed = JSON.parse(response.substring(jsonStartIndex, jsonEndIndex + 1));
+			return parsed?.text ?? '';
 		}
-
-		// If no valid JSON block found, return response as is
 		return response;
 	} catch (e) {
-		// Catch and safely return empty array on any parsing errors
 		console.error('Failed to parse response: ', e);
 		return response;
 	}
@@ -507,277 +198,73 @@ export const generateMoACompletion = async (
 	responses: string[]
 ) => {
 	const controller = new AbortController();
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/moa/completions`, {
-		signal: controller.signal,
+	const res = await apiFetch('/api/v1/tasks/moa/completions', {
 		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			model: model,
-			prompt: prompt,
-			responses: responses,
-			stream: true
-		})
+		body: JSON.stringify({ model, prompt, responses, stream: true }),
+		token,
+		signal: controller.signal,
+		responseType: 'response'
 	}).catch((err) => {
-		console.log(err);
-		error = err;
+		console.error(err);
 		return null;
 	});
-
-	if (error) {
-		throw error;
-	}
-
 	return [res, controller];
 };
 
 export const getPipelinesList = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/pipelines/list`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	let pipelines = res?.data ?? [];
-	return pipelines;
+	const res = await apiFetch<{ data: any[] }>('/api/v1/pipelines/list', { token });
+	return res?.data ?? [];
 };
 
 export const uploadPipeline = async (token: string, file: File, urlIdx: string) => {
-	let error = null;
-
-	// Create a new FormData object to handle the file upload
 	const formData = new FormData();
 	formData.append('file', file);
 	formData.append('urlIdx', urlIdx);
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/pipelines/upload`, {
-		method: 'POST',
-		headers: {
-			...(token && { authorization: `Bearer ${token}` })
-			// 'Content-Type': 'multipart/form-data' is not needed as Fetch API will set it automatically
-		},
-		body: formData
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/v1/pipelines/upload', { method: 'POST', body: formData, token });
 };
 
 export const downloadPipeline = async (token: string, url: string, urlIdx: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/pipelines/add`, {
+	return await apiFetch('/api/v1/pipelines/add', {
 		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		},
-		body: JSON.stringify({
-			url: url,
-			urlIdx: urlIdx
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify({ url, urlIdx }),
+		token
+	});
 };
 
 export const deletePipeline = async (token: string, id: string, urlIdx: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/pipelines/delete`, {
+	return await apiFetch('/api/v1/pipelines/delete', {
 		method: 'DELETE',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		},
-		body: JSON.stringify({
-			id: id,
-			urlIdx: urlIdx
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify({ id, urlIdx }),
+		token
+	});
 };
 
 export const getPipelines = async (token: string, urlIdx?: string) => {
-	let error = null;
-
 	const searchParams = new URLSearchParams();
-	if (urlIdx !== undefined) {
-		searchParams.append('urlIdx', urlIdx);
-	}
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/pipelines/?${searchParams.toString()}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	let pipelines = res?.data ?? [];
-	return pipelines;
+	if (urlIdx !== undefined) searchParams.append('urlIdx', urlIdx);
+	const res = await apiFetch<{ data: any[] }>(
+		`/api/v1/pipelines/?${searchParams.toString()}`,
+		{ token }
+	);
+	return res?.data ?? [];
 };
 
 export const getPipelineValves = async (token: string, pipeline_id: string, urlIdx: string) => {
-	let error = null;
-
 	const searchParams = new URLSearchParams();
-	if (urlIdx !== undefined) {
-		searchParams.append('urlIdx', urlIdx);
-	}
-
-	const res = await fetch(
-		`${WEBUI_BASE_URL}/api/v1/pipelines/${pipeline_id}/valves?${searchParams.toString()}`,
-		{
-			method: 'GET',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-				...(token && { authorization: `Bearer ${token}` })
-			}
-		}
-	)
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	if (urlIdx !== undefined) searchParams.append('urlIdx', urlIdx);
+	return await apiFetch(
+		`/api/v1/pipelines/${pipeline_id}/valves?${searchParams.toString()}`,
+		{ token }
+	);
 };
 
 export const getPipelineValvesSpec = async (token: string, pipeline_id: string, urlIdx: string) => {
-	let error = null;
-
 	const searchParams = new URLSearchParams();
-	if (urlIdx !== undefined) {
-		searchParams.append('urlIdx', urlIdx);
-	}
-
-	const res = await fetch(
-		`${WEBUI_BASE_URL}/api/v1/pipelines/${pipeline_id}/valves/spec?${searchParams.toString()}`,
-		{
-			method: 'GET',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-				...(token && { authorization: `Bearer ${token}` })
-			}
-		}
-	)
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	if (urlIdx !== undefined) searchParams.append('urlIdx', urlIdx);
+	return await apiFetch(
+		`/api/v1/pipelines/${pipeline_id}/valves/spec?${searchParams.toString()}`,
+		{ token }
+	);
 };
 
 export const updatePipelineValves = async (
@@ -786,151 +273,28 @@ export const updatePipelineValves = async (
 	valves: object,
 	urlIdx: string
 ) => {
-	let error = null;
-
 	const searchParams = new URLSearchParams();
-	if (urlIdx !== undefined) {
-		searchParams.append('urlIdx', urlIdx);
-	}
-
-	const res = await fetch(
-		`${WEBUI_BASE_URL}/api/v1/pipelines/${pipeline_id}/valves/update?${searchParams.toString()}`,
-		{
-			method: 'POST',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-				...(token && { authorization: `Bearer ${token}` })
-			},
-			body: JSON.stringify(valves)
-		}
-	)
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	if (urlIdx !== undefined) searchParams.append('urlIdx', urlIdx);
+	return await apiFetch(
+		`/api/v1/pipelines/${pipeline_id}/valves/update?${searchParams.toString()}`,
+		{ method: 'POST', body: JSON.stringify(valves), token }
+	);
 };
 
 export const getBackendConfig = async () => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/config`, {
-		method: 'GET',
-		credentials: 'include',
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/config', { token: null, credentials: 'include' });
 };
 
 export const getChangelog = async () => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/changelog`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/changelog', { token: null });
 };
 
 export const getVersionUpdates = async () => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/version/updates`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/version/updates', { token: null });
 };
 
 export const getModelFilterConfig = async (token: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/config/model/filter`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/config/model/filter', { token });
 };
 
 export const updateModelFilterConfig = async (
@@ -938,171 +302,37 @@ export const updateModelFilterConfig = async (
 	enabled: boolean,
 	models: string[]
 ) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/config/model/filter`, {
+	return await apiFetch('/api/config/model/filter', {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			enabled: enabled,
-			models: models
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify({ enabled, models }),
+		token
+	});
 };
 
 export const getWebhookUrl = async (token: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/webhook`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
+	const res = await apiFetch<{ url: string }>('/api/webhook', { token });
 	return res.url;
 };
 
 export const updateWebhookUrl = async (token: string, url: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/webhook`, {
+	const res = await apiFetch<{ url: string }>('/api/webhook', {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			url: url
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
+		body: JSON.stringify({ url }),
+		token
+	});
 	return res.url;
 };
 
 export const getCommunitySharingEnabledStatus = async (token: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/community_sharing`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/community_sharing', { token });
 };
 
 export const toggleCommunitySharingEnabledStatus = async (token: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/community_sharing/toggle`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	return await apiFetch('/api/community_sharing/toggle', { token });
 };
 
 export const getModelConfig = async (token: string): Promise<GlobalModelConfig> => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/config/models`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
+	const res = await apiFetch<{ models: GlobalModelConfig }>('/api/config/models', { token });
 	return res.models;
 };
 
@@ -1125,31 +355,9 @@ export interface ModelParams {}
 export type GlobalModelConfig = ModelConfig[];
 
 export const updateModelConfig = async (token: string, config: GlobalModelConfig) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_BASE_URL}/api/config/models`, {
+	return await apiFetch('/api/config/models', {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			models: config
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		body: JSON.stringify({ models: config }),
+		token
+	});
 };

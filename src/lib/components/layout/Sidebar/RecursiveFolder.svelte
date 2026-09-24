@@ -22,6 +22,7 @@
 		updateFolderParentIdById
 	} from '$lib/apis/folders';
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import {
 		getChatById,
 		getChatsByFolderId,
@@ -49,6 +50,8 @@
 	let dragged = false;
 
 	let name = '';
+	let initialized = false;
+	let lastPersistedOpen = open;
 
 	const onDragOver = (e) => {
 		e.preventDefault();
@@ -67,7 +70,6 @@
 		}
 
 		if (folderElement.contains(e.target)) {
-			console.log('Dropped on the Button');
 
 			if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
 				// Iterate over all items in the DataTransferItemList use functional programming
@@ -76,7 +78,6 @@
 					if (item.kind === 'file') {
 						const file = item.getAsFile();
 						if (file && file.type === 'application/json') {
-							console.log('Dropped file is a JSON file!');
 
 							// Read the JSON file with FileReader
 							const reader = new FileReader();
@@ -99,12 +100,10 @@
 							console.error('Only JSON file types are supported.');
 						}
 
-						console.log(file);
 					} else {
 						// Handle the drag-and-drop data for folders or chats (same as before)
 						const dataTransfer = e.dataTransfer.getData('text/plain');
 						const data = JSON.parse(dataTransfer);
-						console.log(data);
 
 						const { type, id, item } = data;
 
@@ -116,7 +115,7 @@
 							// Move the folder
 							const res = await updateFolderParentIdById(localStorage.token, id, folderId).catch(
 								(error) => {
-									toast.error(error);
+									toast.error(normalizeErrorMessage(error));
 									return null;
 								}
 							);
@@ -137,7 +136,7 @@
 							// Move the chat
 							const res = await updateChatFolderIdById(localStorage.token, chat.id, folderId).catch(
 								(error) => {
-									toast.error(error);
+									toast.error(normalizeErrorMessage(error));
 									return null;
 								}
 							);
@@ -203,6 +202,8 @@
 
 	onMount(() => {
 		open = folders[folderId].is_expanded;
+		lastPersistedOpen = open;
+		initialized = true;
 		if (folderElement) {
 			folderElement.addEventListener('dragover', onDragOver);
 			folderElement.addEventListener('drop', onDrop);
@@ -233,7 +234,7 @@
 
 	const deleteHandler = async () => {
 		const res = await deleteFolderById(localStorage.token, folderId).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 
@@ -260,7 +261,7 @@
 		folders[folderId].name = name;
 
 		const res = await updateFolderNameById(localStorage.token, folderId, name).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 
 			folders[folderId].name = currentName;
 			return null;
@@ -276,7 +277,7 @@
 	const isExpandedUpdateHandler = async () => {
 		const res = await updateFolderIsExpandedById(localStorage.token, folderId, open).catch(
 			(error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			}
 		);
@@ -291,10 +292,12 @@
 		}, 500);
 	};
 
-	$: isExpandedUpdateDebounceHandler(open);
+	$: if (initialized && open !== lastPersistedOpen) {
+		lastPersistedOpen = open;
+		isExpandedUpdateDebounceHandler(open);
+	}
 
 	const editHandler = async () => {
-		console.log('Edit');
 		await tick();
 		name = folders[folderId].name;
 		edit = true;
@@ -310,7 +313,7 @@
 
 	const exportHandler = async () => {
 		const chats = await getChatsByFolderId(localStorage.token, folderId).catch((error) => {
-			toast.error(error);
+			toast.error(normalizeErrorMessage(error));
 			return null;
 		});
 		if (!chats) {

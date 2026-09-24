@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { normalizeErrorMessage } from '$lib/apis/client';
 	import { Pane, PaneGroup, PaneResizer } from 'paneforge';
 
 	import { onDestroy, onMount, tick } from 'svelte';
@@ -142,7 +143,7 @@
 
 		const res = await sendMessage(localStorage.token, id, { content: content, data: data }).catch(
 			(error) => {
-				toast.error(error);
+				toast.error(normalizeErrorMessage(error));
 				return null;
 			}
 		);
@@ -199,9 +200,8 @@
 </svelte:head>
 
 <div
-	class="h-screen max-h-[100dvh] {$showSidebar
-		? 'md:max-w-[calc(100%-260px)]'
-		: ''} w-full max-w-full flex flex-col"
+	class="sidebar-aware-content h-screen max-h-[100dvh] w-full max-w-full flex flex-col"
+	data-sidebar-open={$showSidebar}
 	id="channel-container"
 >
 	<PaneGroup direction="horizontal" class="w-full h-full">

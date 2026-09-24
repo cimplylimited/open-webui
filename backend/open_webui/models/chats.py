@@ -675,6 +675,22 @@ class ChatTable:
             # Validate and return chats
             return [ChatModel.model_validate(chat) for chat in all_chats]
 
+    def get_chat_titles_and_ids_by_folder_ids_and_user_id(
+        self, folder_ids: list[str], user_id: str
+    ) -> list[tuple[str, str, str]]:
+        with get_db() as db:
+            return (
+                db.query(Chat.folder_id, Chat.id, Chat.title)
+                .filter(
+                    Chat.folder_id.in_(folder_ids),
+                    Chat.user_id == user_id,
+                    Chat.archived == False,
+                    or_(Chat.pinned == False, Chat.pinned == None),
+                )
+                .order_by(Chat.updated_at.desc())
+                .all()
+            )
+
     def get_chats_by_folder_id_and_user_id(
         self, folder_id: str, user_id: str
     ) -> list[ChatModel]:

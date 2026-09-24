@@ -896,9 +896,14 @@
 		});
 
 		if (chat) {
-			tags = await getTagsById(localStorage.token, $chatId).catch(async (error) => {
-				return [];
-			});
+			const loadedChatId = $chatId;
+			void getTagsById(localStorage.token, loadedChatId)
+				.then((loadedTags) => {
+					if ($chatId === loadedChatId) tags = loadedTags;
+				})
+				.catch(() => {
+					if ($chatId === loadedChatId) tags = [];
+				});
 
 			const chatContent = chat.chat;
 

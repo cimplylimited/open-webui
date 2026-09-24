@@ -1578,8 +1578,10 @@
 		}
 		await tick();
 
-		// Save chat after all messages have been created (non-blocking)
-		void queueChatSave($chatId);
+		// Persist complete message structures before completion middleware starts updating them.
+		if (!(await queueChatSave($chatId))) {
+			return;
+		}
 
 		const _chatId = JSON.parse(JSON.stringify($chatId));
 		const parentMessages = createMessagesList(parentId);

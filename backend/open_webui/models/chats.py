@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import uuid
 from typing import Optional
@@ -11,6 +12,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Boolean, Column, String, Text, JSON
 from sqlalchemy import or_, func, select, and_, text
 from sqlalchemy.sql import exists
+
+log = logging.getLogger(__name__)
 
 ####################
 # Chat DB Schema
@@ -237,6 +240,15 @@ class ChatTable:
                 **message,
             }
         else:
+            required_fields = {"id", "role", "parentId", "childrenIds", "content"}
+            if not required_fields.issubset(message):
+                log.warning(
+                    "Refusing partial upsert for unknown message %s in chat %s",
+                    message_id,
+                    id,
+                )
+                return None
+
             history["messages"][message_id] = message
 
         history["currentId"] = message_id

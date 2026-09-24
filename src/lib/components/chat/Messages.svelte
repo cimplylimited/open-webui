@@ -53,6 +53,7 @@
 
 	let initializedMessagesCountForChatId = '';
 	let lastSeenChatId = '';
+	let firstRenderLoggedForChatId = '';
 
 	const getContentLength = (message) => {
 		const content = message?.merged?.content ?? message?.content;

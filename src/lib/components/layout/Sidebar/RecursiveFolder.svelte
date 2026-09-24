@@ -51,6 +51,7 @@
 
 	let name = '';
 	let initialized = false;
+	let lastPersistedOpen = open;
 
 	const onDragOver = (e) => {
 		e.preventDefault();
@@ -201,6 +202,7 @@
 
 	onMount(() => {
 		open = folders[folderId].is_expanded;
+		lastPersistedOpen = open;
 		initialized = true;
 		if (folderElement) {
 			folderElement.addEventListener('dragover', onDragOver);
@@ -290,7 +292,10 @@
 		}, 500);
 	};
 
-	$: if (initialized) isExpandedUpdateDebounceHandler(open);
+	$: if (initialized && open !== lastPersistedOpen) {
+		lastPersistedOpen = open;
+		isExpandedUpdateDebounceHandler(open);
+	}
 
 	const editHandler = async () => {
 		await tick();

@@ -276,10 +276,9 @@
 				}
 			}
 		} catch (error) {
-			console.warn("Failed to cleanup draft cache", error);
+			console.warn('Failed to cleanup draft cache', error);
 		}
 	};
-
 
 	const queueChatSave = async (_chatId, options = { notifyOnFailure: true }) => {
 		const { notifyOnFailure = true } = options ?? {};
@@ -579,7 +578,6 @@
 				await goto('/');
 			}
 		}
-
 
 		showControls.subscribe(async (value) => {
 			if (controlPane && !$mobile) {
@@ -887,7 +885,9 @@
 	};
 
 	const loadChat = async () => {
-		const debugChatLoad = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug-chat-load');
+		const debugChatLoad =
+			typeof window !== 'undefined' &&
+			new URLSearchParams(window.location.search).has('debug-chat-load');
 		const conversionStart = performance.now();
 		chatId.set(chatIdProp);
 		chat = await getChatById(localStorage.token, $chatId).catch(async (error) => {
@@ -918,7 +918,10 @@
 						? chatContent.history
 						: convertMessagesToHistory(chatContent.messages);
 				if (debugChatLoad) {
-					console.info('[chat-load-timing] history-conversion', { durationMs: performance.now() - historyStart, messages: Object.keys(history?.messages ?? {}).length });
+					console.info('[chat-load-timing] history-conversion', {
+						durationMs: performance.now() - historyStart,
+						messages: Object.keys(history?.messages ?? {}).length
+					});
 				}
 
 				chatTitle.set(chatContent.title);
@@ -937,7 +940,9 @@
 				autoScroll = true;
 				await tick();
 				if (debugChatLoad) {
-					console.info('[chat-load-timing] chat-ready', { durationMs: performance.now() - conversionStart });
+					console.info('[chat-load-timing] chat-ready', {
+						durationMs: performance.now() - conversionStart
+					});
 				}
 
 				if (history.currentId) {
@@ -1382,9 +1387,9 @@
 		const msgId = pendingUserMessageId;
 		const msg = history.messages[msgId];
 		if (msg?.parentId && history.messages[msg.parentId]) {
-			history.messages[msg.parentId].childrenIds = history.messages[msg.parentId].childrenIds.filter(
-				(id) => id !== msgId
-			);
+			history.messages[msg.parentId].childrenIds = history.messages[
+				msg.parentId
+			].childrenIds.filter((id) => id !== msgId);
 		}
 		delete history.messages[msgId];
 		history.currentId = msg?.parentId ?? null;
@@ -1678,7 +1683,9 @@
 			params?.stream_response ??
 			true;
 
-		const contextWindow = getContextWindow(parentMessages ?? createMessagesList(responseMessage.parentId));
+		const contextWindow = getContextWindow(
+			parentMessages ?? createMessagesList(responseMessage.parentId)
+		);
 		contextWindowingInfo = {
 			active: contextWindow.active,
 			includedMessages: contextWindow.messages.length,
@@ -1734,7 +1741,7 @@
 			localStorage.token,
 			{
 				stream: stream,
-					model: model.id,
+				model: model.id,
 				messages: requestMessages,
 				params: {
 					...$settings?.params,
@@ -2057,16 +2064,14 @@
 
 {#if !chatIdProp || (loaded && chatIdProp)}
 	<div
-		class="h-screen max-h-[100dvh] {$showSidebar
-			? 'md:max-w-[calc(100%-260px)]'
-			: ''} w-full max-w-full flex flex-col"
+		class="sidebar-aware-content h-screen max-h-[100dvh] w-full max-w-full flex flex-col"
+		data-sidebar-open={$showSidebar}
 		id="chat-container"
 	>
 		{#if $settings?.backgroundImageUrl ?? null}
 			<div
-				class="absolute {$showSidebar
-					? 'md:max-w-[calc(100%-260px)] md:translate-x-[260px]'
-					: ''} top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
+				class="sidebar-aware-background absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
+				data-sidebar-open={$showSidebar}
 				style="background-image: url({$settings.backgroundImageUrl})  "
 			/>
 

@@ -200,9 +200,8 @@
 </svelte:head>
 
 <div
-	class="h-screen max-h-[100dvh] {$showSidebar
-		? 'md:max-w-[calc(100%-260px)]'
-		: ''} w-full max-w-full flex flex-col"
+	class="sidebar-aware-content h-screen max-h-[100dvh] w-full max-w-full flex flex-col"
+	data-sidebar-open={$showSidebar}
 	id="channel-container"
 >
 	<PaneGroup direction="horizontal" class="w-full h-full">

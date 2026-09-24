@@ -60,6 +60,40 @@
 
 	const BREAKPOINT = 768;
 
+	const SIDEBAR_MIN_WIDTH = 240;
+	const SIDEBAR_MAX_WIDTH = 480;
+	const SIDEBAR_DEFAULT_WIDTH = 260;
+
+	let sidebarWidth = SIDEBAR_DEFAULT_WIDTH;
+	let resizingSidebar = false;
+
+	const applySidebarWidth = (width) => {
+		sidebarWidth = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
+		document.documentElement.style.setProperty('--sidebar-width', `${sidebarWidth}px`);
+	};
+
+	const stopSidebarResize = () => {
+		if (!resizingSidebar) return;
+		resizingSidebar = false;
+		localStorage.sidebarWidth = `${sidebarWidth}`;
+		document.body.style.cursor = '';
+		document.body.style.userSelect = '';
+		window.removeEventListener('pointermove', resizeSidebar);
+		window.removeEventListener('pointerup', stopSidebarResize);
+	};
+
+	const resizeSidebar = (event) => applySidebarWidth(event.clientX);
+
+	const startSidebarResize = (event) => {
+		if ($mobile) return;
+		event.preventDefault();
+		resizingSidebar = true;
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+		window.addEventListener('pointermove', resizeSidebar);
+		window.addEventListener('pointerup', stopSidebarResize);
+	};
+
 	let navElement;
 	let search = '';
 
@@ -382,6 +416,9 @@
 
 	onMount(async () => {
 		showPinnedChat = localStorage?.showPinnedChat ? localStorage.showPinnedChat === 'true' : true;
+		applySidebarWidth(
+			Number.parseInt(localStorage.sidebarWidth ?? '', 10) || SIDEBAR_DEFAULT_WIDTH
+		);
 
 		mobile.subscribe((e) => {
 			if ($showSidebar && e) {
@@ -418,6 +455,7 @@
 	});
 
 	onDestroy(() => {
+		stopSidebarResize();
 		window.removeEventListener('keydown', onKeyDown);
 		window.removeEventListener('keyup', onKeyUp);
 
@@ -475,14 +513,13 @@
 <div
 	bind:this={navElement}
 	id="sidebar"
-	class="h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
-		? 'md:relative w-[260px] max-w-[260px]'
-		: '-translate-x-[260px] w-[0px]'} bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-200 text-sm transition fixed z-50 top-0 left-0 overflow-x-hidden
-        "
+	class="sidebar-shell h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
+		? 'md:relative'
+		: ''} bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-200 text-sm transition fixed z-50 top-0 left-0 overflow-x-hidden"
 	data-state={$showSidebar}
 >
 	<div
-		class="py-2 my-auto flex flex-col justify-between h-screen max-h-[100dvh] w-[260px] overflow-x-hidden z-50 {$showSidebar
+		class="sidebar-inner py-2 my-auto flex flex-col justify-between h-screen max-h-[100dvh] overflow-x-hidden z-50 {$showSidebar
 			? ''
 			: 'invisible'}"
 	>
@@ -890,9 +927,63 @@
 			</div>
 		</div>
 	</div>
+	{#if $showSidebar}
+		<button
+			type="button"
+			aria-label="Resize sidebar"
+			class="sidebar-resize-handle hidden md:block"
+			on:pointerdown={startSidebarResize}
+		/>
+	{/if}
 </div>
 
 <style>
+	.sidebar-shell {
+		width: 0;
+		max-width: 0;
+		transform: translateX(-260px);
+	}
+	.sidebar-shell[data-state='true'] {
+		width: 260px;
+		max-width: 260px;
+		transform: translateX(0);
+	}
+	.sidebar-inner {
+		width: 260px;
+	}
+	.sidebar-resize-handle {
+		position: absolute;
+		top: 0;
+		right: -3px;
+		z-index: 60;
+		width: 7px;
+		height: 100%;
+		cursor: col-resize;
+		background: transparent;
+	}
+	.sidebar-resize-handle:hover,
+	.sidebar-resize-handle:active {
+		background: rgb(156 163 175 / 0.35);
+	}
+	@media (min-width: 768px) {
+		.sidebar-shell[data-state='true'] {
+			width: var(--sidebar-width, 260px);
+			max-width: var(--sidebar-width, 260px);
+		}
+		.sidebar-shell:not([data-state='true']) {
+			transform: translateX(calc(-1 * var(--sidebar-width, 260px)));
+		}
+		.sidebar-inner {
+			width: var(--sidebar-width, 260px);
+		}
+		:global(.sidebar-aware-content[data-sidebar-open='true']) {
+			max-width: calc(100% - var(--sidebar-width, 260px));
+		}
+		:global(.sidebar-aware-background[data-sidebar-open='true']) {
+			max-width: calc(100% - var(--sidebar-width, 260px));
+			transform: translateX(var(--sidebar-width, 260px));
+		}
+	}
 	.scrollbar-hidden:active::-webkit-scrollbar-thumb,
 	.scrollbar-hidden:focus::-webkit-scrollbar-thumb,
 	.scrollbar-hidden:hover::-webkit-scrollbar-thumb {

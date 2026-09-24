@@ -51,9 +51,8 @@
 
 {#if loaded}
 	<div
-		class=" relative flex flex-col w-full h-screen max-h-[100dvh] {$showSidebar
-			? 'md:max-w-[calc(100%-260px)]'
-			: ''}"
+		class="sidebar-aware-content relative flex flex-col w-full h-screen max-h-[100dvh]"
+		data-sidebar-open={$showSidebar}
 	>
 		<div class="   px-2.5 pt-1 backdrop-blur-xl">
 			<div class=" flex items-center gap-1">

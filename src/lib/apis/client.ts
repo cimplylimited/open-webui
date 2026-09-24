@@ -52,7 +52,11 @@ export async function apiFetch<T = unknown>(path: string, options: ApiFetchOptio
 		throw err;
 	}
 
-	recordTiming({ operation: path, durationMs: performance.now() - start, status: res.status });
+	const fetchDurationMs = performance.now() - start;
+	recordTiming({ operation: path, durationMs: fetchDurationMs, status: res.status });
+	if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug-chat-load") && path.includes("/api/v1/chats/")) {
+		console.info("[chat-load-timing] network-fetch", { path, durationMs: fetchDurationMs, status: res.status });
+	}
 
 	if (!res.ok) {
 		const text = await res.text().catch(() => '');

@@ -131,12 +131,18 @@
 		messages = [];
 	}
 
+	$: if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug-chat-load') && chatId && history.currentId && messages.length > 0 && firstRenderLoggedForChatId !== chatId) {
+		firstRenderLoggedForChatId = chatId;
+		(async () => {
+			const renderStart = performance.now();
+			await tick();
+			console.info('[chat-load-timing] first-render', { durationMs: performance.now() - renderStart, messages: messages.length, totalMessages: Object.keys(history?.messages ?? {}).length });
+		})();
+	}
+
 	$: if (autoScroll && bottomPadding) {
 		(async () => {
 			await tick();
-			if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug-chat-load')) {
-				console.info('[chat-load-timing] first-render', { messages: messages.length, totalMessages: Object.keys(history?.messages ?? {}).length });
-			}
 			scrollToBottom();
 		})();
 	}

@@ -52,6 +52,7 @@ services:
     networks:
       - edge
       - internal
+      - gateway
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/version', timeout=5)"]
       interval: 30s
@@ -97,3 +98,6 @@ networks:
   edge: {}
   internal:
     internal: true
+  gateway:
+    external: true
+    name: open-webui_default
